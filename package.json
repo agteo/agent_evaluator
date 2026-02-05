@@ -1,0 +1,14 @@
+{
+  "name": "evaluator",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd frontend && npm install",
+    "setup": "python -m venv .venv && pip install -r backend/requirements.txt && cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -1,0 +1,19 @@
+llm:
+  default_provider: openai
+  default_model: gpt-4o-mini
+  rate_limits:
+    openai:
+      requests_per_minute: 60
+      tokens_per_minute: 100000
+    anthropic:
+      requests_per_minute: 50
+      tokens_per_minute: 80000
+    ollama:
+      requests_per_minute: 120
+      tokens_per_minute: 0  # no limit for local
+
+eval_runner:
+  max_concurrency: 5
+  retry_max_attempts: 3
+  retry_base_delay: 1.0
+  retry_max_delay: 10.0

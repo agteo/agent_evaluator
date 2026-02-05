@@ -1,0 +1,34 @@
+# Data
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# Environment
+.env
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+CLAUDE_STARTER_TEMPLATE_V1.2md
+CLAUDE.node_modules
+Eval_project.md
+
+.claude/
