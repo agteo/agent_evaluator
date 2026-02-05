@@ -27,7 +27,8 @@ backend/.env
 .DS_Store
 Thumbs.db
 
-CLAUDE_STARTER_TEMPLATE_V1.2md
+CLAUDE.md
+CLAUDE_STARTER_TEMPLATE_V1.2.md
 CLAUDE.node_modules
 Eval_project.md
 
