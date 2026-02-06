@@ -144,7 +144,10 @@ export default function RunDetailPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Trace ID
+                  Trace
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Preview
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Score
@@ -161,77 +164,108 @@ export default function RunDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {resultsData.items.map((r) => (
-                <>
-                  <tr
-                    key={r.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() =>
-                      setExpandedResult(expandedResult === r.id ? null : r.id)
-                    }
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                      {r.trace_id.slice(0, 16)}...
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium">
-                      {r.overall_score != null ? r.overall_score.toFixed(2) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {r.tokens_used ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {r.latency_ms != null ? `${(r.latency_ms / 1000).toFixed(1)}s` : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.error ? (
-                        <span className="text-xs text-red-600">Error</span>
-                      ) : (
-                        <span className="text-xs text-green-600">OK</span>
-                      )}
-                    </td>
-                  </tr>
-                  {expandedResult === r.id && (
-                    <tr key={`${r.id}-detail`}>
-                      <td colSpan={5} className="px-4 py-4 bg-gray-50">
-                        <div className="space-y-3 text-sm">
-                          {r.reasoning && (
-                            <div>
-                              <p className="font-medium text-gray-700 mb-1">Reasoning</p>
-                              <p className="text-gray-600 whitespace-pre-wrap">{r.reasoning}</p>
-                            </div>
-                          )}
-                          {r.criteria_scores && (
-                            <div>
-                              <p className="font-medium text-gray-700 mb-1">Criteria Scores</p>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {Object.entries(r.criteria_scores).map(([name, val]) => (
-                                  <div
-                                    key={name}
-                                    className="bg-white border border-gray-200 rounded px-3 py-2"
-                                  >
-                                    <span className="text-gray-500 text-xs">{name}</span>
-                                    <div className="font-medium">
-                                      {typeof val === 'object' && val !== null && 'score' in val
-                                        ? (val as { score: number }).score
-                                        : String(val)}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {r.error && (
-                            <div>
-                              <p className="font-medium text-red-700 mb-1">Error</p>
-                              <p className="text-red-600">{r.error}</p>
-                            </div>
-                          )}
-                        </div>
+              {resultsData.items.map((r) => {
+                const ts = r.trace_summary
+                const traceLabel = ts?.name || r.trace_id.slice(0, 16) + (r.trace_id.length > 16 ? '…' : '')
+                const traceDate = ts?.timestamp
+                  ? new Date(ts.timestamp).toLocaleString()
+                  : ts?.imported_at
+                    ? new Date(ts.imported_at).toLocaleString()
+                    : null
+                const preview = ts?.input_preview || ts?.output_preview || '—'
+                return (
+                  <>
+                    <tr
+                      key={r.id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() =>
+                        setExpandedResult(expandedResult === r.id ? null : r.id)
+                      }
+                    >
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-medium text-gray-900">{traceLabel}</div>
+                        {traceDate && (
+                          <div className="text-xs text-gray-500">{traceDate}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={preview}>
+                        {preview !== '—' ? preview : r.trace_id.slice(0, 12) + '…'}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium">
+                        {r.overall_score != null ? r.overall_score.toFixed(2) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {r.tokens_used ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {r.latency_ms != null ? `${(r.latency_ms / 1000).toFixed(1)}s` : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {r.error ? (
+                          <span className="text-xs text-red-600">Error</span>
+                        ) : (
+                          <span className="text-xs text-green-600">OK</span>
+                        )}
                       </td>
                     </tr>
-                  )}
-                </>
-              ))}
+                    {expandedResult === r.id && (
+                      <tr key={`${r.id}-detail`}>
+                        <td colSpan={6} className="px-4 py-4 bg-gray-50">
+                          <div className="space-y-3 text-sm">
+                            {ts && (ts.input_preview || ts.output_preview) && (
+                              <div>
+                                <p className="font-medium text-gray-700 mb-1">Trace content</p>
+                                {ts.input_preview && (
+                                  <p className="text-gray-600 text-xs mb-1">
+                                    <span className="text-gray-500">Input:</span> {ts.input_preview}
+                                  </p>
+                                )}
+                                {ts.output_preview && (
+                                  <p className="text-gray-600 text-xs">
+                                    <span className="text-gray-500">Output:</span> {ts.output_preview}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {r.reasoning && (
+                              <div>
+                                <p className="font-medium text-gray-700 mb-1">Reasoning</p>
+                                <p className="text-gray-600 whitespace-pre-wrap">{r.reasoning}</p>
+                              </div>
+                            )}
+                            {r.criteria_scores && (
+                              <div>
+                                <p className="font-medium text-gray-700 mb-1">Criteria Scores</p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                  {Object.entries(r.criteria_scores).map(([name, val]) => (
+                                    <div
+                                      key={name}
+                                      className="bg-white border border-gray-200 rounded px-3 py-2"
+                                    >
+                                      <span className="text-gray-500 text-xs">{name}</span>
+                                      <div className="font-medium">
+                                        {typeof val === 'object' && val !== null && 'score' in val
+                                          ? (val as { score: number }).score
+                                          : String(val)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {r.error && (
+                              <div>
+                                <p className="font-medium text-red-700 mb-1">Error</p>
+                                <p className="text-red-600">{r.error}</p>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
             </tbody>
           </table>
           {/* Pagination */}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/layout/PageHeader'
 import LoadingState from '../components/layout/LoadingState'
@@ -19,6 +19,18 @@ export default function DatasetDetailPage() {
   const [showAddPanel, setShowAddPanel] = useState(false)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [pageSize, setPageSize] = useState(20)
+  const [currentPage, setCurrentPage] = useState(0)
+
+  const totalTraces = traceIds?.length ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalTraces / pageSize))
+  const pageTraceIds = traceIds?.slice(currentPage * pageSize, currentPage * pageSize + pageSize) ?? []
+
+  useEffect(() => {
+    if (totalTraces > 0 && currentPage >= totalPages) {
+      setCurrentPage(Math.max(0, totalPages - 1))
+    }
+  }, [totalTraces, totalPages, currentPage])
 
   // Fetch available traces for the add panel
   const { data: availableTraces } = useTraces(
@@ -103,6 +115,9 @@ export default function DatasetDetailPage() {
       {showAddPanel && (
         <div className="bg-white rounded-lg border border-blue-200 p-6 space-y-4">
           <h3 className="text-sm font-medium text-gray-900">Select Traces to Add</h3>
+          <p className="text-sm text-gray-500">
+            These are traces you imported on the Traces page. Search and select to add them to this dataset.
+          </p>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -154,28 +169,76 @@ export default function DatasetDetailPage() {
 
       {/* Current traces in dataset */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-medium text-gray-700">Traces in Dataset</h3>
+          {traceIds && traceIds.length > 0 && (
+            <div className="flex items-center gap-3 text-sm">
+              <label className="flex items-center gap-2 text-gray-600">
+                Per page
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setCurrentPage(0)
+                  }}
+                  className="rounded border border-gray-300 px-2 py-1 text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+              <span className="text-gray-500">
+                Showing {totalTraces === 0 ? 0 : currentPage * pageSize + 1}–
+                {Math.min((currentPage + 1) * pageSize, totalTraces)} of {totalTraces}
+              </span>
+            </div>
+          )}
         </div>
         {!traceIds || traceIds.length === 0 ? (
           <div className="p-8 text-center text-gray-500 text-sm">
             No traces in this dataset yet. Click "Add Traces" to get started.
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {traceIds.map((tid) => (
-              <div key={tid} className="flex items-center justify-between px-4 py-2">
-                <span className="font-mono text-sm text-gray-700">{tid}</span>
+          <>
+            <div className="divide-y divide-gray-200">
+              {pageTraceIds.map((tid) => (
+                  <div key={tid} className="flex items-center justify-between px-4 py-2">
+                    <span className="font-mono text-sm text-gray-700">{tid}</span>
+                    <button
+                      onClick={() => handleRemove(tid)}
+                      disabled={removeMutation.isPending}
+                      className="text-red-600 hover:text-red-800 text-xs"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+            </div>
+            {totalTraces > pageSize && (
+              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between text-sm">
                 <button
-                  onClick={() => handleRemove(tid)}
-                  disabled={removeMutation.isPending}
-                  className="text-red-600 hover:text-red-800 text-xs"
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                  className="rounded border border-gray-300 px-3 py-1 text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Remove
+                  Previous
+                </button>
+                <span className="text-gray-600">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                  className="rounded border border-gray-300 px-3 py-1 text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
                 </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

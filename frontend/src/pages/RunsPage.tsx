@@ -93,6 +93,9 @@ export default function RunsPage() {
                 <option value="all">All Traces</option>
                 <option value="dataset">From Dataset</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                All Traces = every trace you imported (Traces page). From Dataset = only traces in the selected dataset.
+              </p>
             </div>
             {traceSource === 'dataset' && (
               <div>

@@ -55,6 +55,7 @@ Edit `.env` and add your API keys:
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 OLLAMA_BASE_URL=http://localhost:11434
+LMSTUDIO_BASE_URL=http://localhost:1234/v1   # optional; use your LMStudio host, e.g. http://100.87.214.29:1234/v1
 ```
 
 #### 4. Start the backend

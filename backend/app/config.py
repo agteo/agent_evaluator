@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+    lmstudio_base_url: str = "http://localhost:1234/v1"
 
     model_config = {
         "env_file": [str(_PROJECT / ".env"), str(_BACKEND / ".env")],

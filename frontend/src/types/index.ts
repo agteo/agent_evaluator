@@ -6,6 +6,9 @@ export interface TraceSummary {
   latency_ms: number | null
   timestamp: string | null
   imported_at: string
+  /** Truncated input/output for list preview (from list API only) */
+  input_preview?: string
+  output_preview?: string
 }
 
 export interface Trace extends TraceSummary {
@@ -72,6 +75,14 @@ export interface EvalRun {
   created_at: string
 }
 
+export interface TraceSummaryForResult {
+  name: string | null
+  timestamp: string | null
+  imported_at: string
+  input_preview: string
+  output_preview: string
+}
+
 export interface EvalResult {
   id: number
   run_id: number
@@ -85,6 +96,7 @@ export interface EvalResult {
   latency_ms: number | null
   error: string | null
   created_at: string
+  trace_summary?: TraceSummaryForResult | null
 }
 
 export interface Dataset {

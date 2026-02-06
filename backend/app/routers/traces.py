@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.schemas.trace import TraceOut, TraceSummary, TraceImportResponse
+from app.schemas.trace import (
+    TraceOut,
+    TraceSummary,
+    TraceSummaryWithPreview,
+    TraceImportResponse,
+    _preview,
+)
 from app.services import trace_service
 
 router = APIRouter(prefix="/api/traces", tags=["traces"])
@@ -51,8 +57,16 @@ async def list_traces(
         offset=offset,
         limit=limit,
     )
+    items = [
+        TraceSummaryWithPreview(
+            **TraceSummary.model_validate(t).model_dump(),
+            input_preview=_preview(t.input),
+            output_preview=_preview(t.output),
+        )
+        for t in traces
+    ]
     return {
-        "items": [TraceSummary.model_validate(t) for t in traces],
+        "items": items,
         "total": total,
         "offset": offset,
         "limit": limit,

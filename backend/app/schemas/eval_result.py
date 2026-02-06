@@ -21,3 +21,17 @@ class EvalResultOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TraceSummaryForResult(BaseModel):
+    """Trace metadata shown alongside each run result row."""
+    name: str | None
+    timestamp: datetime | None
+    imported_at: datetime
+    input_preview: str
+    output_preview: str
+
+
+class RunResultWithTrace(EvalResultOut):
+    """Eval result plus trace summary for display in run results table."""
+    trace_summary: TraceSummaryForResult | None = None

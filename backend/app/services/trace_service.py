@@ -86,6 +86,14 @@ async def get_trace(db: AsyncSession, trace_id: str) -> Trace | None:
     return await db.get(Trace, trace_id)
 
 
+async def get_traces_by_ids(db: AsyncSession, trace_ids: list[str]) -> list[Trace]:
+    """Return traces for the given IDs, in arbitrary order. Missing IDs are omitted."""
+    if not trace_ids:
+        return []
+    result = await db.execute(select(Trace).where(Trace.id.in_(trace_ids)))
+    return list(result.scalars().unique().all())
+
+
 async def delete_trace(db: AsyncSession, trace_id: str) -> bool:
     trace = await db.get(Trace, trace_id)
     if not trace:

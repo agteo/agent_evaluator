@@ -39,6 +39,9 @@ export default function TraceTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Name
             </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[200px]">
+              Preview
+            </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Tags
             </th>
@@ -65,6 +68,9 @@ export default function TraceTable({
               </td>
               <td className="px-4 py-3 text-sm text-gray-900">
                 {trace.name || <span className="text-gray-400 italic">unnamed</span>}
+              </td>
+              <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={trace.output_preview || trace.input_preview || ''}>
+                {trace.output_preview || trace.input_preview || '—'}
               </td>
               <td className="px-4 py-3 text-sm">
                 <div className="flex flex-wrap gap-1">

@@ -11,6 +11,9 @@ llm:
     ollama:
       requests_per_minute: 120
       tokens_per_minute: 0  # no limit for local
+    lmstudio:
+      requests_per_minute: 120
+      tokens_per_minute: 0  # no limit for local
 
 eval_runner:
   max_concurrency: 5

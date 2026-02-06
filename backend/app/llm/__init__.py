@@ -4,6 +4,7 @@ from app.llm.base import LLMProvider, LLMResponse
 from app.llm.openai_provider import OpenAIProvider
 from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.ollama_provider import OllamaProvider
+from app.llm.lmstudio_provider import LMStudioProvider
 
 __all__ = ["LLMProvider", "LLMResponse", "get_provider"]
 
@@ -11,6 +12,7 @@ _providers: dict[str, type[LLMProvider]] = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "ollama": OllamaProvider,
+    "lmstudio": LMStudioProvider,
 }
 
 

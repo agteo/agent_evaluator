@@ -48,10 +48,23 @@ export default function TraceDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Prominent back link so users can easily leave the detail view */}
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Traces
+        </button>
+      </div>
       <PageHeader title={trace.name || `Trace ${trace.id}`}>
         <button
           onClick={() => navigate('/')}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Back
         </button>

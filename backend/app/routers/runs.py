@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -7,11 +9,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.schemas.eval_run import RunCreate, RunOut, RunSummary
-from app.schemas.eval_result import EvalResultOut
+from app.schemas.eval_result import EvalResultOut, RunResultWithTrace, TraceSummaryForResult
 from app.services import run_service
+from app.services import trace_service
 from app.services import eval_runner
+from app.models.trace import Trace
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
+
+PREVIEW_MAX = 120
+
+
+def _preview(obj: dict | None) -> str:
+    if obj is None:
+        return ""
+    try:
+        s = json.dumps(obj, default=str)
+    except Exception:
+        s = str(obj)
+    return s[:PREVIEW_MAX] + ("..." if len(s) > PREVIEW_MAX else "")
+
+
+def _trace_summary(t: Trace) -> TraceSummaryForResult:
+    return TraceSummaryForResult(
+        name=t.name,
+        timestamp=t.timestamp,
+        imported_at=t.imported_at,
+        input_preview=_preview(t.input),
+        output_preview=_preview(t.output),
+    )
 
 
 @router.post("", response_model=RunOut, status_code=201)
@@ -67,8 +93,23 @@ async def get_run_results(
         raise HTTPException(404, f"Run {run_id} not found")
 
     results, total = await run_service.get_run_results(db, run_id, offset=offset, limit=limit)
+    trace_ids = [r.trace_id for r in results]
+    traces = await trace_service.get_traces_by_ids(db, trace_ids)
+    trace_by_id = {t.id: t for t in traces}
+
+    items = []
+    for r in results:
+        trace = trace_by_id.get(r.trace_id)
+        summary = _trace_summary(trace) if trace else None
+        items.append(
+            RunResultWithTrace(
+                **EvalResultOut.model_validate(r).model_dump(),
+                trace_summary=summary,
+            )
+        )
+
     return {
-        "items": [EvalResultOut.model_validate(r) for r in results],
+        "items": items,
         "total": total,
         "offset": offset,
         "limit": limit,

@@ -39,6 +39,23 @@ class TraceSummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
+def _preview(obj: dict | None, max_len: int = 100) -> str:
+    if obj is None:
+        return ""
+    try:
+        import json
+        s = json.dumps(obj, default=str)
+    except Exception:
+        s = str(obj)
+    return s[:max_len] + ("..." if len(s) > max_len else "")
+
+
+class TraceSummaryWithPreview(TraceSummary):
+    """Trace list item with truncated input/output for table preview."""
+    input_preview: str = ""
+    output_preview: str = ""
+
+
 class TraceImportResponse(BaseModel):
     imported: int
     skipped: int
