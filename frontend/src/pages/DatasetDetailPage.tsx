@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/layout/PageHeader'
+import LoadingState from '../components/layout/LoadingState'
+import ErrorState from '../components/layout/ErrorState'
 import { useDataset, useDatasetTraces, useAddTracesToDataset, useRemoveTracesFromDataset } from '../hooks/useDatasets'
 import { useTraces } from '../hooks/useTraces'
 
@@ -50,11 +52,16 @@ export default function DatasetDetailPage() {
   }
 
   if (isLoading) {
-    return <div className="text-center py-8 text-gray-500">Loading dataset...</div>
+    return <LoadingState rows={3} />
   }
 
   if (!dataset) {
-    return <div className="text-center py-8 text-gray-500">Dataset not found</div>
+    return (
+      <ErrorState
+        message="Dataset not found."
+        onRetry={() => navigate('/datasets')}
+      />
+    )
   }
 
   return (

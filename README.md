@@ -82,6 +82,35 @@ API requests are automatically proxied to the backend.
 
 Navigate to **http://localhost:5173** in your browser.
 
+### Quick Run (both servers at once)
+
+If you already have the venv set up and dependencies installed:
+
+```bash
+npm run dev       # From project root - runs backend + frontend via concurrently
+```
+
+## Workflow
+
+1. **Import traces** - Drag and drop a Langfuse JSON/JSONL export file onto the Traces page (a sample file is provided at `samples/langfuse_export.json`)
+2. **Create an eval config** - Define your evaluation rubric: choose an LLM provider/model, set criteria with weights, customize the prompt template
+3. **Test your config** - Use the "Test a Trace" feature on the eval config page to preview how it evaluates a single trace
+4. **Create a dataset** (optional) - Group traces into curated collections for targeted evaluation
+5. **Launch a run** - Select an eval config and trace source (all traces or a dataset), then start the evaluation
+6. **Review results** - View per-trace scores, criteria breakdowns, score distribution charts, and export results as JSON or CSV
+
+## Sample Data
+
+A sample Langfuse export with 10 realistic traces is included at `samples/langfuse_export.json`. It contains varied trace types:
+- Customer support conversations
+- Code review and generation
+- Summarization and translation
+- Data extraction (invoice parsing)
+- Creative writing
+- Question-answering with retrieval
+
+Import it via the Traces page to test the full evaluation workflow.
+
 ## Project Structure
 
 ```
@@ -111,6 +140,8 @@ Evaluator/
 │   ├── package.json
 │   └── vite.config.ts
 ├── data/                        # SQLite database (auto-created, gitignored)
+├── samples/
+│   └── langfuse_export.json     # Sample Langfuse traces for testing
 ├── .env.example                 # Environment variable template
 ├── setup.bat                    # Automated first-time setup (Windows)
 ├── start.bat                    # Launch both servers (Windows)

@@ -10,6 +10,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import PageHeader from '../components/layout/PageHeader'
+import LoadingState from '../components/layout/LoadingState'
+import ErrorState from '../components/layout/ErrorState'
 import { useRunPolling, useRunResults, useRunAggregation } from '../hooks/useRuns'
 import { exportRunResults } from '../api/runs'
 import type { RunAggregation } from '../types'
@@ -39,11 +41,16 @@ export default function RunDetailPage() {
   const [expandedResult, setExpandedResult] = useState<number | null>(null)
 
   if (isLoading) {
-    return <div className="text-center py-8 text-gray-500">Loading run...</div>
+    return <LoadingState rows={5} />
   }
 
   if (!run) {
-    return <div className="text-center py-8 text-gray-500">Run not found</div>
+    return (
+      <ErrorState
+        message="Run not found."
+        onRetry={() => navigate('/runs')}
+      />
+    )
   }
 
   const processed = run.completed_traces + run.failed_traces

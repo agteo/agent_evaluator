@@ -1,0 +1,315 @@
+[
+  {
+    "id": "trace-001-a1b2c3d4",
+    "name": "customer-support-chat",
+    "timestamp": "2025-01-15T10:30:00Z",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are a helpful customer support agent for an e-commerce platform."},
+        {"role": "user", "content": "I ordered a laptop 5 days ago and haven't received any shipping confirmation. My order number is #ORD-9182. Can you help?"}
+      ]
+    },
+    "output": {
+      "messages": [
+        {"role": "assistant", "content": "I'd be happy to help you check on your order! Let me look up order #ORD-9182 right away.\n\nI can see your order was placed on January 10th for a ThinkPad X1 Carbon. It looks like the order is currently in our warehouse being prepared for shipment. You should receive a shipping confirmation email within the next 24 hours.\n\nIs there anything else I can help you with regarding this order?"}
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "environment": "production",
+      "channel": "web-chat",
+      "customer_tier": "premium"
+    },
+    "tags": ["customer-support", "order-inquiry", "production"],
+    "scores": [
+      {"name": "helpfulness", "value": 4.5},
+      {"name": "accuracy", "value": 4.0}
+    ],
+    "totalCost": 0.00234,
+    "latencyMs": 1250,
+    "sessionId": "session-cs-001",
+    "userId": "user-8472",
+    "version": "1.2.0",
+    "observations": [
+      {
+        "id": "obs-001",
+        "type": "generation",
+        "name": "chat-completion",
+        "model": "gpt-4o-mini",
+        "input": {"messages": [{"role": "user", "content": "order status inquiry"}]},
+        "output": {"content": "order status response"},
+        "startTime": "2025-01-15T10:30:00.100Z",
+        "endTime": "2025-01-15T10:30:01.350Z",
+        "usage": {"promptTokens": 89, "completionTokens": 112, "totalTokens": 201}
+      }
+    ]
+  },
+  {
+    "id": "trace-002-e5f6g7h8",
+    "name": "code-review-assistant",
+    "timestamp": "2025-01-15T11:15:00Z",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are a senior software engineer. Review the following code and provide constructive feedback."},
+        {"role": "user", "content": "Please review this Python function:\n\ndef get_user(id):\n    db = connect()\n    result = db.query(f\"SELECT * FROM users WHERE id = {id}\")\n    return result[0]"}
+      ]
+    },
+    "output": {
+      "messages": [
+        {"role": "assistant", "content": "I see several critical issues with this code:\n\n1. **SQL Injection Vulnerability**: The f-string query is vulnerable to SQL injection. Use parameterized queries instead:\n   ```python\n   result = db.query(\"SELECT * FROM users WHERE id = %s\", (id,))\n   ```\n\n2. **No Error Handling**: If `result` is empty, `result[0]` will raise an IndexError. Add a check:\n   ```python\n   if not result:\n       return None\n   ```\n\n3. **Resource Leak**: The database connection is never closed. Use a context manager or connection pool.\n\n4. **Naming**: The parameter `id` shadows the built-in `id()` function. Consider using `user_id` instead.\n\n5. **Type Hints**: Add type annotations for better code documentation."}
+      ]
+    },
+    "metadata": {
+      "model": "claude-sonnet-4-20250514",
+      "environment": "production",
+      "language": "python",
+      "review_type": "security"
+    },
+    "tags": ["code-review", "security", "python"],
+    "scores": [
+      {"name": "helpfulness", "value": 5.0},
+      {"name": "accuracy", "value": 5.0},
+      {"name": "completeness", "value": 4.5}
+    ],
+    "totalCost": 0.00891,
+    "latencyMs": 2340,
+    "sessionId": "session-cr-002",
+    "userId": "user-3291"
+  },
+  {
+    "id": "trace-003-i9j0k1l2",
+    "name": "summarization-task",
+    "timestamp": "2025-01-15T12:00:00Z",
+    "input": {
+      "text": "The European Central Bank held its key interest rates steady on Thursday, as widely expected, but signaled it could cut rates as soon as June if inflation continues to ease. ECB President Christine Lagarde said the governing council was 'not pre-committing to a particular rate path' but acknowledged that most indicators pointed to inflation returning to target. The deposit rate remains at 4%, where it has been since September 2023. Financial markets are pricing in at least three rate cuts by the end of 2024. The euro edged lower against the dollar following the announcement, while European bond yields dipped modestly."
+    },
+    "output": {
+      "text": "The ECB kept interest rates unchanged at 4% but hinted at potential rate cuts starting June if inflation continues declining. Markets expect at least three cuts by year-end."
+    },
+    "metadata": {
+      "model": "gpt-3.5-turbo",
+      "environment": "staging",
+      "task_type": "summarization",
+      "source_length": 142,
+      "target_ratio": 0.2
+    },
+    "tags": ["summarization", "finance", "staging"],
+    "scores": {"quality": 3.5, "conciseness": 4.0, "accuracy": 4.5},
+    "totalCost": 0.00045,
+    "latencyMs": 890,
+    "userId": "user-5510"
+  },
+  {
+    "id": "trace-004-m3n4o5p6",
+    "name": "translation-task",
+    "timestamp": "2025-01-15T13:45:00Z",
+    "input": {
+      "text": "The quick brown fox jumps over the lazy dog. This classic pangram has been used for decades in typography and font testing. Despite its simplicity, it contains every letter of the English alphabet at least once.",
+      "source_language": "en",
+      "target_language": "es"
+    },
+    "output": {
+      "text": "El rápido zorro marrón salta sobre el perro perezoso. Este clásico pangrama se ha utilizado durante décadas en tipografía y pruebas de fuentes. A pesar de su simplicidad, contiene cada letra del alfabeto inglés al menos una vez."
+    },
+    "metadata": {
+      "model": "gpt-4o",
+      "environment": "production",
+      "task_type": "translation"
+    },
+    "tags": ["translation", "en-es", "production"],
+    "scores": [
+      {"name": "fluency", "value": 4.8},
+      {"name": "accuracy", "value": 4.5}
+    ],
+    "totalCost": 0.00178,
+    "latencyMs": 1560,
+    "sessionId": "session-tr-004",
+    "userId": "user-7723"
+  },
+  {
+    "id": "trace-005-q7r8s9t0",
+    "name": "customer-support-chat",
+    "timestamp": "2025-01-15T14:20:00Z",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are a helpful customer support agent for an e-commerce platform."},
+        {"role": "user", "content": "I want a refund for my purchase. The product was terrible quality and broke after one day."}
+      ]
+    },
+    "output": {
+      "messages": [
+        {"role": "assistant", "content": "I understand your frustration. Could you please provide your order number so I can look into the refund for you?"}
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "environment": "production",
+      "channel": "web-chat",
+      "customer_tier": "standard"
+    },
+    "tags": ["customer-support", "refund", "production"],
+    "scores": [
+      {"name": "helpfulness", "value": 2.5},
+      {"name": "empathy", "value": 2.0}
+    ],
+    "totalCost": 0.00089,
+    "latencyMs": 780,
+    "sessionId": "session-cs-005",
+    "userId": "user-1192"
+  },
+  {
+    "id": "trace-006-u1v2w3x4",
+    "name": "data-extraction",
+    "timestamp": "2025-01-15T15:10:00Z",
+    "input": {
+      "text": "Invoice #INV-2024-0892\nDate: January 10, 2025\nFrom: Acme Corp, 123 Business Ave, New York, NY 10001\nTo: Widget Inc, 456 Commerce St, San Francisco, CA 94102\n\nItems:\n- Enterprise License (annual): $12,000.00\n- Premium Support Package: $3,600.00\n- Implementation Services (40 hrs @ $200/hr): $8,000.00\n\nSubtotal: $23,600.00\nTax (8.875%): $2,094.50\nTotal: $25,694.50\n\nPayment Terms: Net 30\nDue Date: February 9, 2025"
+    },
+    "output": {
+      "invoice_number": "INV-2024-0892",
+      "date": "2025-01-10",
+      "vendor": {"name": "Acme Corp", "address": "123 Business Ave, New York, NY 10001"},
+      "customer": {"name": "Widget Inc", "address": "456 Commerce St, San Francisco, CA 94102"},
+      "items": [
+        {"description": "Enterprise License (annual)", "amount": 12000.00},
+        {"description": "Premium Support Package", "amount": 3600.00},
+        {"description": "Implementation Services (40 hrs @ $200/hr)", "amount": 8000.00}
+      ],
+      "subtotal": 23600.00,
+      "tax": 2094.50,
+      "total": 25694.50,
+      "payment_terms": "Net 30",
+      "due_date": "2025-02-09"
+    },
+    "metadata": {
+      "model": "gpt-4o",
+      "environment": "production",
+      "task_type": "extraction",
+      "document_type": "invoice"
+    },
+    "tags": ["data-extraction", "invoice", "production"],
+    "scores": {"accuracy": 5.0, "completeness": 5.0, "formatting": 4.5},
+    "totalCost": 0.00456,
+    "latencyMs": 1890,
+    "userId": "user-6634"
+  },
+  {
+    "id": "trace-007-y5z6a7b8",
+    "name": "creative-writing",
+    "timestamp": "2025-01-15T16:30:00Z",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are a creative writing assistant. Write in a vivid, engaging style."},
+        {"role": "user", "content": "Write a short opening paragraph for a mystery novel set in a coastal town during a storm."}
+      ]
+    },
+    "output": {
+      "messages": [
+        {"role": "assistant", "content": "The lighthouse at Widow's Point had been dark for three years when the light came back on. Not the steady, sweeping beam that old Captain Harrow used to tend, but a stuttering, frantic pulse that cut through the sheets of rain like a distress signal from the dead. Sheriff Maren Cole stood at the edge of the cliff road, salt spray stinging her face, watching that impossible light and knowing with a certainty she couldn't explain that whatever had happened to the people of Crescent Bay was about to happen again."}
+      ]
+    },
+    "metadata": {
+      "model": "claude-sonnet-4-20250514",
+      "environment": "production",
+      "genre": "mystery",
+      "word_count_target": 100
+    },
+    "tags": ["creative-writing", "mystery", "production"],
+    "scores": [
+      {"name": "creativity", "value": 4.8},
+      {"name": "engagement", "value": 5.0},
+      {"name": "style", "value": 4.5}
+    ],
+    "totalCost": 0.00567,
+    "latencyMs": 3210,
+    "sessionId": "session-cw-007",
+    "userId": "user-4418"
+  },
+  {
+    "id": "trace-008-c9d0e1f2",
+    "name": "qa-retrieval",
+    "timestamp": "2025-01-15T17:00:00Z",
+    "input": {
+      "question": "What are the main benefits of using async/await in Python?",
+      "context": "Python's asyncio module provides a framework for writing single-threaded concurrent code using coroutines. The async/await syntax, introduced in Python 3.5, makes asynchronous code look and behave more like synchronous code. Key benefits include: (1) improved I/O-bound performance by allowing the event loop to switch between tasks during wait periods, (2) better resource utilization compared to threading for I/O-heavy workloads, (3) cleaner code structure compared to callback-based approaches, and (4) built-in support for common patterns like timeouts and cancellation."
+    },
+    "output": {
+      "answer": "The main benefits of async/await in Python are:\n\n1. **Better I/O performance**: The event loop can handle other tasks during I/O wait periods instead of blocking\n2. **Resource efficiency**: Uses less memory than threading for I/O-bound workloads since it runs on a single thread\n3. **Cleaner code**: Much more readable than callback-based async patterns\n4. **Built-in patterns**: Native support for timeouts, cancellation, and task coordination",
+      "sources_used": ["context_chunk_1"]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "environment": "production",
+      "task_type": "qa-retrieval",
+      "retriever": "vector-search",
+      "top_k": 3
+    },
+    "tags": ["qa", "retrieval", "python", "production"],
+    "scores": {"relevance": 4.5, "accuracy": 4.8, "groundedness": 5.0},
+    "totalCost": 0.00123,
+    "latencyMs": 1120,
+    "userId": "user-2285"
+  },
+  {
+    "id": "trace-009-g3h4i5j6",
+    "name": "customer-support-chat",
+    "timestamp": "2025-01-15T18:15:00Z",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are a helpful customer support agent for an e-commerce platform."},
+        {"role": "user", "content": "How do I change my password?"}
+      ]
+    },
+    "output": {
+      "messages": [
+        {"role": "assistant", "content": "To change your password, follow these steps:\n\n1. Click on your profile icon in the top right corner\n2. Select \"Account Settings\"\n3. Click \"Security\" in the left sidebar\n4. Click \"Change Password\"\n5. Enter your current password, then your new password twice\n6. Click \"Save Changes\"\n\nYour new password must be at least 8 characters long and include a mix of uppercase, lowercase, numbers, and symbols.\n\nNeed any other help with your account?"}
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "environment": "production",
+      "channel": "web-chat",
+      "customer_tier": "standard"
+    },
+    "tags": ["customer-support", "account", "production"],
+    "scores": [
+      {"name": "helpfulness", "value": 5.0},
+      {"name": "clarity", "value": 5.0}
+    ],
+    "totalCost": 0.00067,
+    "latencyMs": 650,
+    "sessionId": "session-cs-009",
+    "userId": "user-9903"
+  },
+  {
+    "id": "trace-010-k7l8m9n0",
+    "name": "code-generation",
+    "timestamp": "2025-01-15T19:00:00Z",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are an expert programmer. Generate clean, well-documented code."},
+        {"role": "user", "content": "Write a Python function that implements binary search on a sorted list. Include type hints and docstring."}
+      ]
+    },
+    "output": {
+      "messages": [
+        {"role": "assistant", "content": "```python\ndef binary_search(arr: list[int], target: int) -> int:\n    \"\"\"Search for target in a sorted list using binary search.\n\n    Args:\n        arr: A sorted list of integers.\n        target: The value to search for.\n\n    Returns:\n        The index of target if found, otherwise -1.\n    \"\"\"\n    left, right = 0, len(arr) - 1\n\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n\n    return -1\n```\n\nTime complexity: O(log n)\nSpace complexity: O(1)"}
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o",
+      "environment": "production",
+      "language": "python",
+      "task_type": "code-generation"
+    },
+    "tags": ["code-generation", "python", "algorithms"],
+    "scores": [
+      {"name": "correctness", "value": 5.0},
+      {"name": "code_quality", "value": 4.5},
+      {"name": "documentation", "value": 5.0}
+    ],
+    "totalCost": 0.00345,
+    "latencyMs": 1780,
+    "sessionId": "session-cg-010",
+    "userId": "user-5567"
+  }
+]

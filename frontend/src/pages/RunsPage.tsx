@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/layout/PageHeader'
+import LoadingState from '../components/layout/LoadingState'
+import EmptyState from '../components/layout/EmptyState'
+import ErrorState from '../components/layout/ErrorState'
 import { useRuns, useCreateRun, useDeleteRun } from '../hooks/useRuns'
 import { useEvalConfigs } from '../hooks/useEvals'
 import { useDatasets } from '../hooks/useDatasets'
@@ -13,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function RunsPage() {
-  const { data, isLoading } = useRuns()
+  const { data, isLoading, isError, refetch } = useRuns()
   const createMutation = useCreateRun()
   const deleteMutation = useDeleteRun()
   const navigate = useNavigate()
@@ -127,12 +130,24 @@ export default function RunsPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading runs...</div>
-      ) : !data || data.total === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-          No runs yet. Create an eval config and launch a run to get started.
+      {/* Launch error */}
+      {createMutation.isError && (
+        <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          Failed to launch run: {(createMutation.error as Error)?.message || 'Unknown error'}
         </div>
+      )}
+
+      {isLoading ? (
+        <LoadingState rows={4} />
+      ) : isError ? (
+        <ErrorState message="Failed to load runs." onRetry={() => refetch()} />
+      ) : !data || data.total === 0 ? (
+        <EmptyState
+          title="No runs yet."
+          description="Create an eval config first, then launch a run to evaluate your traces."
+          actionLabel="New Run"
+          onAction={() => setShowLauncher(true)}
+        />
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">

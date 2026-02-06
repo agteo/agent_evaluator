@@ -5,6 +5,7 @@ import {
   createEvalConfig,
   updateEvalConfig,
   deleteEvalConfig,
+  testSingleTrace,
 } from '../api/evals'
 import type { EvalConfigCreate } from '../types'
 
@@ -52,5 +53,12 @@ export function useDeleteEvalConfig() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evalConfigs'] })
     },
+  })
+}
+
+export function useTestSingleTrace() {
+  return useMutation({
+    mutationFn: ({ configId, traceId }: { configId: number; traceId: string }) =>
+      testSingleTrace(configId, traceId),
   })
 }

@@ -8,6 +8,7 @@ import RunsPage from './pages/RunsPage'
 import RunDetailPage from './pages/RunDetailPage'
 import DatasetsPage from './pages/DatasetsPage'
 import DatasetDetailPage from './pages/DatasetDetailPage'
+import GuidePage from './pages/GuidePage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/runs/:runId" element={<RunDetailPage />} />
           <Route path="/datasets" element={<DatasetsPage />} />
           <Route path="/datasets/:datasetId" element={<DatasetDetailPage />} />
+          <Route path="/guide" element={<GuidePage />} />
         </Routes>
       </main>
     </div>

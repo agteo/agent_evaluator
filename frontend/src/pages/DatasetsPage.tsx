@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/layout/PageHeader'
+import LoadingState from '../components/layout/LoadingState'
+import EmptyState from '../components/layout/EmptyState'
+import ErrorState from '../components/layout/ErrorState'
 import { useDatasets, useCreateDataset, useDeleteDataset } from '../hooks/useDatasets'
 
 export default function DatasetsPage() {
-  const { data, isLoading } = useDatasets()
+  const { data, isLoading, isError, refetch } = useDatasets()
   const createMutation = useCreateDataset()
   const deleteMutation = useDeleteDataset()
   const navigate = useNavigate()
@@ -84,11 +87,16 @@ export default function DatasetsPage() {
       )}
 
       {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading datasets...</div>
+        <LoadingState rows={3} />
+      ) : isError ? (
+        <ErrorState message="Failed to load datasets." onRetry={() => refetch()} />
       ) : !data || data.total === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-          No datasets yet. Create one to get started.
-        </div>
+        <EmptyState
+          title="No datasets yet."
+          description="Create a dataset to organize traces into curated collections."
+          actionLabel="New Dataset"
+          onAction={() => setShowCreate(true)}
+        />
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">

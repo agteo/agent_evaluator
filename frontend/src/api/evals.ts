@@ -37,3 +37,24 @@ export async function updateEvalConfig(
 export async function deleteEvalConfig(configId: number): Promise<void> {
   await client.delete(`/evals/${configId}`)
 }
+
+export interface TestTraceResult {
+  trace_id: string
+  overall_score: number | null
+  criteria_scores: Record<string, { score: number; reasoning?: string }> | null
+  reasoning: string | null
+  raw_response: string
+  prompt_used: string
+  tokens_used: number
+  latency_ms: number
+}
+
+export async function testSingleTrace(
+  configId: number,
+  traceId: string,
+): Promise<TestTraceResult> {
+  const { data } = await client.post<TestTraceResult>(`/evals/${configId}/test`, {
+    trace_id: traceId,
+  })
+  return data
+}

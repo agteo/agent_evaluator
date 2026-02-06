@@ -1,9 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/layout/PageHeader'
+import LoadingState from '../components/layout/LoadingState'
+import EmptyState from '../components/layout/EmptyState'
+import ErrorState from '../components/layout/ErrorState'
 import { useEvalConfigs, useDeleteEvalConfig } from '../hooks/useEvals'
 
 export default function EvalsPage() {
-  const { data, isLoading } = useEvalConfigs()
+  const { data, isLoading, isError, refetch } = useEvalConfigs()
   const deleteMutation = useDeleteEvalConfig()
   const navigate = useNavigate()
 
@@ -29,11 +32,16 @@ export default function EvalsPage() {
       </PageHeader>
 
       {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading configs...</div>
+        <LoadingState rows={3} />
+      ) : isError ? (
+        <ErrorState message="Failed to load eval configs." onRetry={() => refetch()} />
       ) : !data || data.total === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-          No evaluation configs yet. Create one to get started.
-        </div>
+        <EmptyState
+          title="No evaluation configs yet."
+          description="Create an eval config to define how traces should be evaluated."
+          actionLabel="Create Config"
+          actionTo="/evals/new"
+        />
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">

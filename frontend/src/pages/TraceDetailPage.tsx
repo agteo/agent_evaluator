@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/layout/PageHeader'
+import LoadingState from '../components/layout/LoadingState'
 import { useTrace, useDeleteTrace } from '../hooks/useTraces'
 
 function JsonBlock({ label, data }: { label: string; data: unknown }) {
@@ -21,7 +22,7 @@ export default function TraceDetailPage() {
   const deleteMutation = useDeleteTrace()
 
   if (isLoading) {
-    return <div className="text-center py-12 text-gray-500">Loading trace...</div>
+    return <LoadingState rows={4} />
   }
 
   if (isError || !trace) {
