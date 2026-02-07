@@ -854,7 +854,7 @@ export default function EvalConfigPage() {
                     <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
                       Raw LLM Response
                     </summary>
-                    <pre className="mt-2 bg-gray-50 rounded p-3 overflow-auto max-h-48 text-xs">
+                    <pre className="mt-2 bg-gray-50 rounded p-3 whitespace-pre-wrap break-words min-w-0 overflow-y-auto max-h-48 text-xs">
                       {testResult.raw_response}
                     </pre>
                   </details>

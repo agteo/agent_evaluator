@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 # Keep references to running tasks so they aren't garbage-collected
 _active_tasks: dict[int, asyncio.Task] = {}
 
+# Serialize DB writes so one session isn't used from concurrent tasks (avoids
+# "commit() can't be called here" and SQLite "database is locked").
+_db_write_lock = asyncio.Lock()
+
 
 def start_run(run_id: int) -> None:
     task = asyncio.create_task(_execute_run(run_id))
@@ -85,10 +89,18 @@ async def _execute_run(run_id: int) -> None:
                 "base_delay": runner_config.get("retry_base_delay", 1.0),
                 "max_delay": runner_config.get("retry_max_delay", 10.0),
             }
+            # Trace content limit; 0 = no truncation
+            max_trace_tokens = runner_config.get("max_trace_tokens") or 0
+            max_trace_chars = int(max_trace_tokens * 1.5) if max_trace_tokens else None
+            # Hard cap on total prompt length so no request exceeds n_ctx; 0 = no cap
+            max_prompt_chars = runner_config.get("max_prompt_chars") or 0
+            max_prompt_chars = int(max_prompt_chars) if max_prompt_chars else None
 
-            # Evaluate all traces concurrently (bounded by semaphore)
+            # Evaluate all traces concurrently (bounded by semaphore).
             tasks = [
-                _evaluate_single_trace(db, run.id, trace, config, provider, semaphore, retry_cfg)
+                _evaluate_single_trace(
+                    run.id, trace, config, provider, semaphore, retry_cfg, max_trace_chars, max_prompt_chars
+                )
                 for trace in traces
             ]
             await asyncio.gather(*tasks)
@@ -110,10 +122,11 @@ async def _execute_run(run_id: int) -> None:
 
         except Exception as e:
             logger.exception("Run %d failed with unexpected error", run_id)
-            async with async_session() as err_db:
-                err_run = await err_db.get(EvalRun, run_id)
-                if err_run:
-                    await _fail_run(err_db, err_run, str(e))
+            async with _db_write_lock:
+                async with async_session() as err_db:
+                    err_run = await err_db.get(EvalRun, run_id)
+                    if err_run:
+                        await _fail_run(err_db, err_run, str(e))
 
 
 async def _fail_run(db: AsyncSession, run: EvalRun, message: str) -> None:
@@ -123,14 +136,17 @@ async def _fail_run(db: AsyncSession, run: EvalRun, message: str) -> None:
     await db.commit()
 
 
+PROMPT_TRUNCATED_SUFFIX = "\n\n[Prompt truncated to fit context limit.]"
+
 async def _evaluate_single_trace(
-    db: AsyncSession,
     run_id: int,
     trace: Trace,
     config: EvalConfig,
     provider: LLMProvider,
     semaphore: asyncio.Semaphore,
     retry_cfg: dict,
+    max_trace_chars: int | None,
+    max_prompt_chars: int | None,
 ) -> None:
     async with semaphore:
         # Build trace dict for template rendering
@@ -145,23 +161,45 @@ async def _evaluate_single_trace(
             "scores": trace.scores,
         }
 
-        # Render prompt
+        # Render prompt (optionally truncate trace content to fit context)
         try:
-            prompt = render_template(config.prompt_template, trace_dict, config.criteria)
+            prompt = render_template(
+                config.prompt_template,
+                trace_dict,
+                config.criteria,
+                max_trace_chars=max_trace_chars,
+            )
         except Exception as e:
-            await _save_result(db, run_id, trace.id, error=f"Template error: {e}", prompt_used=None)
-            await _increment_counter(db, run_id, failed=True)
+            await _save_result(run_id, trace.id, error=f"Template error: {e}", prompt_used=None)
+            await _increment_counter(run_id, failed=True)
             return
 
-        # Call LLM with retry
+        # Hard cap total prompt length so no request can exceed context (e.g. due to large template/criteria)
+        if max_prompt_chars and max_prompt_chars > 0 and len(prompt) > max_prompt_chars:
+            prompt = prompt[: max_prompt_chars - len(PROMPT_TRUNCATED_SUFFIX)] + PROMPT_TRUNCATED_SUFFIX
+            logger.info(
+                "Run %d trace %s: prompt capped to %d chars",
+                run_id, trace.id, max_prompt_chars,
+            )
+
+        # Call LLM with retry (log prompt size to diagnose context errors)
+        prompt_chars = len(prompt)
+        logger.debug(
+            "Run %d trace %s: prompt length %d chars (~%d tokens at 2 chars/token)",
+            run_id, trace.id, prompt_chars, prompt_chars // 2,
+        )
         try:
             llm_response = await _with_retry(
                 lambda: provider.complete(prompt, temperature=config.temperature, model=config.model),
                 **retry_cfg,
             )
         except Exception as e:
-            await _save_result(db, run_id, trace.id, error=f"LLM error: {e}", prompt_used=prompt)
-            await _increment_counter(db, run_id, failed=True)
+            logger.warning(
+                "Run %d trace %s: LLM failed, prompt was %d chars (~%d tokens). Error: %s",
+                run_id, trace.id, prompt_chars, prompt_chars // 2, e,
+            )
+            await _save_result(run_id, trace.id, error=f"LLM error: {e}", prompt_used=prompt)
+            await _increment_counter(run_id, failed=True)
             return
 
         # Parse LLM response
@@ -194,7 +232,6 @@ async def _evaluate_single_trace(
             reasoning = parsed.get("reasoning") or parsed.get("explanation", "")
 
         await _save_result(
-            db,
             run_id,
             trace.id,
             overall_score=overall_score,
@@ -205,11 +242,10 @@ async def _evaluate_single_trace(
             tokens_used=llm_response.tokens_used,
             latency_ms=llm_response.latency_ms,
         )
-        await _increment_counter(db, run_id, failed=(overall_score is None and parsed is None))
+        await _increment_counter(run_id, failed=(overall_score is None and parsed is None))
 
 
 async def _save_result(
-    db: AsyncSession,
     run_id: int,
     trace_id: str,
     *,
@@ -234,24 +270,28 @@ async def _save_result(
         latency_ms=latency_ms,
         error=error,
     )
-    db.add(result)
-    await db.commit()
+    async with _db_write_lock:
+        async with async_session() as db:
+            db.add(result)
+            await db.commit()
 
 
-async def _increment_counter(db: AsyncSession, run_id: int, *, failed: bool = False) -> None:
-    if failed:
-        await db.execute(
-            update(EvalRun)
-            .where(EvalRun.id == run_id)
-            .values(failed_traces=EvalRun.failed_traces + 1)
-        )
-    else:
-        await db.execute(
-            update(EvalRun)
-            .where(EvalRun.id == run_id)
-            .values(completed_traces=EvalRun.completed_traces + 1)
-        )
-    await db.commit()
+async def _increment_counter(run_id: int, *, failed: bool = False) -> None:
+    async with _db_write_lock:
+        async with async_session() as db:
+            if failed:
+                await db.execute(
+                    update(EvalRun)
+                    .where(EvalRun.id == run_id)
+                    .values(failed_traces=EvalRun.failed_traces + 1)
+                )
+            else:
+                await db.execute(
+                    update(EvalRun)
+                    .where(EvalRun.id == run_id)
+                    .values(completed_traces=EvalRun.completed_traces + 1)
+                )
+            await db.commit()
 
 
 async def _with_retry(

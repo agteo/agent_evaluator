@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Fragment, useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   BarChart,
   Bar,
@@ -174,21 +174,35 @@ export default function RunDetailPage() {
                     : null
                 const preview = ts?.input_preview || ts?.output_preview || '—'
                 return (
-                  <>
+                  <Fragment key={r.id}>
                     <tr
-                      key={r.id}
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() =>
                         setExpandedResult(expandedResult === r.id ? null : r.id)
                       }
                     >
                       <td className="px-4 py-3 text-sm">
-                        <div className="font-medium text-gray-900">{traceLabel}</div>
+                        <div className="font-medium text-gray-900">
+                          <Link
+                            to={`/traces/${r.trace_id}`}
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {traceLabel}
+                          </Link>
+                        </div>
                         {traceDate && (
                           <div className="text-xs text-gray-500">{traceDate}</div>
                         )}
+                        <Link
+                          to={`/traces/${r.trace_id}`}
+                          className="text-xs text-blue-600 hover:underline mt-0.5 inline-block"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View trace →
+                        </Link>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={preview}>
+                      <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] break-words" title={preview}>
                         {preview !== '—' ? preview : r.trace_id.slice(0, 12) + '…'}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium">
@@ -212,16 +226,24 @@ export default function RunDetailPage() {
                       <tr key={`${r.id}-detail`}>
                         <td colSpan={6} className="px-4 py-4 bg-gray-50">
                           <div className="space-y-3 text-sm">
+                            <div className="mb-2">
+                              <Link
+                                to={`/traces/${r.trace_id}`}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                View full trace (input, output, tool calls) →
+                              </Link>
+                            </div>
                             {ts && (ts.input_preview || ts.output_preview) && (
                               <div>
                                 <p className="font-medium text-gray-700 mb-1">Trace content</p>
                                 {ts.input_preview && (
-                                  <p className="text-gray-600 text-xs mb-1">
+                                  <p className="text-gray-600 text-xs mb-1 break-words">
                                     <span className="text-gray-500">Input:</span> {ts.input_preview}
                                   </p>
                                 )}
                                 {ts.output_preview && (
-                                  <p className="text-gray-600 text-xs">
+                                  <p className="text-gray-600 text-xs break-words">
                                     <span className="text-gray-500">Output:</span> {ts.output_preview}
                                   </p>
                                 )}
@@ -231,6 +253,14 @@ export default function RunDetailPage() {
                               <div>
                                 <p className="font-medium text-gray-700 mb-1">Reasoning</p>
                                 <p className="text-gray-600 whitespace-pre-wrap">{r.reasoning}</p>
+                              </div>
+                            )}
+                            {r.raw_response && (
+                              <div>
+                                <p className="font-medium text-gray-700 mb-1">Model response</p>
+                                <pre className="text-gray-600 text-xs whitespace-pre-wrap bg-white border border-gray-200 rounded p-2 max-h-48 overflow-auto">
+                                  {r.raw_response}
+                                </pre>
                               </div>
                             )}
                             {r.criteria_scores && (
@@ -263,7 +293,7 @@ export default function RunDetailPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>
@@ -404,7 +434,7 @@ export default function RunDetailPage() {
             Config Snapshot
           </summary>
           <div className="px-4 pb-4">
-            <pre className="bg-gray-50 rounded p-3 text-xs overflow-auto max-h-64">
+            <pre className="bg-gray-50 rounded p-3 text-xs whitespace-pre-wrap break-words min-w-0 overflow-y-auto max-h-64">
               {JSON.stringify(run.config_snapshot, null, 2)}
             </pre>
           </div>

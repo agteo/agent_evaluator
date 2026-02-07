@@ -100,6 +100,17 @@ npm run dev       # From project root - runs backend + frontend via concurrently
 5. **Launch a run** - Select an eval config and trace source (all traces or a dataset), then start the evaluation
 6. **Review results** - View per-trace scores, criteria breakdowns, score distribution charts, and export results as JSON or CSV
 
+### Using run results
+
+After a run completes, use the outputs to improve your app and prompts:
+
+- **Find weak traces** — On the Run Detail page, expand low-scoring rows to read the judge’s reasoning and per-criterion scores.
+- **Inspect traces** — Open the underlying trace (Traces page or “View trace” from a result) to see full input/output and tool calls from Langfuse; use this to see what caused low scores.
+- **Iterate** — Change your application prompt or tools, re-export traces from Langfuse, re-import and re-run the same eval; use run comparison to compare before/after.
+- **Export** — Download CSV or JSON for further analysis (e.g. spreadsheets, custom dashboards).
+
+See the in-app **User Guide** for the full recommended workflow.
+
 ## Sample Data
 
 A sample Langfuse export with 10 realistic traces is included at `samples/langfuse_export.json`. It contains varied trace types:

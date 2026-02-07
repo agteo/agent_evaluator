@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import Any
 
@@ -13,7 +14,8 @@ from app.llm import get_provider
 from app.models.trace import Trace
 from app.schemas.eval_config import EvalConfigCreate, EvalConfigUpdate, EvalConfigOut
 from app.services import eval_service
-from app.services.eval_runner import _extract_json
+from app.config import load_yaml_config
+from app.services.eval_runner import PROMPT_TRUNCATED_SUFFIX, _extract_json
 from app.utils.template_renderer import render_template
 
 router = APIRouter(prefix="/api/evals", tags=["evals"])
@@ -101,7 +103,19 @@ async def test_single_trace(
     }
 
     try:
-        prompt = render_template(config.prompt_template, trace_dict, config.criteria)
+        runner_config = (load_yaml_config() or {}).get("eval_runner", {})
+        max_trace_tokens = runner_config.get("max_trace_tokens") or 0
+        max_trace_chars = int(max_trace_tokens * 1.5) if max_trace_tokens else None
+        prompt = render_template(
+            config.prompt_template,
+            trace_dict,
+            config.criteria,
+            max_trace_chars=max_trace_chars,
+        )
+        max_prompt_chars = runner_config.get("max_prompt_chars") or 0
+        max_prompt_chars = int(max_prompt_chars) if max_prompt_chars else None
+        if max_prompt_chars and len(prompt) > max_prompt_chars:
+            prompt = prompt[: max_prompt_chars - len(PROMPT_TRUNCATED_SUFFIX)] + PROMPT_TRUNCATED_SUFFIX
     except Exception as e:
         raise HTTPException(400, f"Template rendering error: {e}")
 
@@ -116,6 +130,7 @@ async def test_single_trace(
             prompt, temperature=config.temperature, model=config.model
         )
     except Exception as e:
+        logging.exception("LLM call failed (eval test)")
         raise HTTPException(502, f"LLM call failed: {e}")
     elapsed_ms = (time.time() - start) * 1000
 

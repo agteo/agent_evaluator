@@ -148,6 +148,33 @@ export default function GuidePage() {
           <li><strong>Export</strong> — download results as CSV or JSON for further analysis.</li>
         </ul>
       </Section>
+
+      {/* Using results – recommended workflow */}
+      <Section title="Using Your Results: Recommended Workflow">
+        <p className="text-sm text-gray-700 mb-3">
+          Use run outputs to improve your application and prompts. A practical workflow:
+        </p>
+        <ol className="list-decimal list-inside space-y-3 text-sm text-gray-700">
+          <li>
+            <strong>Spot weak spots</strong> — On the Run Detail page, sort or scan the results table and expand low-scoring or failed rows. Read the judge&apos;s <strong>reasoning</strong> and <strong>per-criterion scores</strong> to see why a trace was marked down.
+          </li>
+          <li>
+            <strong>Inspect the source trace</strong> — Open the trace from the results table (e.g. &quot;View trace&quot;) to see the full Langfuse data: <strong>input/output</strong>, <strong>tool calls</strong>, and metadata. Use this to see what the model actually did and whether tool use, format, or content caused the low score.
+          </li>
+          <li>
+            <strong>Improve your prompt or app</strong> — Adjust your application prompt, system instructions, or tool definitions in your main app (e.g. Langfuse-tracked project). Re-export traces from Langfuse after changes, then re-import and re-run the same eval config to compare.
+          </li>
+          <li>
+            <strong>Compare runs</strong> — Use run comparison (Runs page or API) to see aggregate and per-criterion differences between runs (e.g. before vs after a prompt change). This helps you confirm that changes moved scores in the right direction.
+          </li>
+          <li>
+            <strong>Export for deeper analysis</strong> — Download CSV or JSON from the Run Detail page for spreadsheets, dashboards, or custom analysis (e.g. filtering by criterion, correlating with trace metadata).
+          </li>
+        </ol>
+        <p className="text-sm text-gray-500 mt-3">
+          Tip: Keep eval configs and datasets stable when comparing runs so that differences in scores reflect real changes in your application, not in the evaluation setup.
+        </p>
+      </Section>
     </div>
   )
 }

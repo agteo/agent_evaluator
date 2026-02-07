@@ -20,3 +20,7 @@ eval_runner:
   retry_max_attempts: 3
   retry_base_delay: 1.0
   retry_max_delay: 10.0
+  # Max trace content size. Chars = max_trace_tokens * 1.5. For 58k context use 32000; 0 = no truncation.
+  max_trace_tokens: 32000
+  # Hard cap on total prompt length (chars). Ensures no request exceeds context. For 58k n_ctx use 80000; 0 = no cap.
+  max_prompt_chars: 80000

@@ -63,13 +63,13 @@ export default function TraceTable({
               onClick={() => navigate(`/traces/${trace.id}`)}
               className="hover:bg-gray-50 cursor-pointer transition-colors"
             >
-              <td className="px-4 py-3 text-sm font-mono text-gray-600 truncate max-w-[160px]">
+              <td className="px-4 py-3 text-sm font-mono text-gray-600 break-words max-w-[160px]">
                 {trace.id}
               </td>
-              <td className="px-4 py-3 text-sm text-gray-900">
+              <td className="px-4 py-3 text-sm text-gray-900 break-words">
                 {trace.name || <span className="text-gray-400 italic">unnamed</span>}
               </td>
-              <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={trace.output_preview || trace.input_preview || ''}>
+              <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] break-words" title={trace.output_preview || trace.input_preview || ''}>
                 {trace.output_preview || trace.input_preview || '—'}
               </td>
               <td className="px-4 py-3 text-sm">

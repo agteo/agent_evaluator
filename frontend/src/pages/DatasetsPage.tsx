@@ -214,7 +214,7 @@ export default function DatasetsPage() {
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{ds.name}</div>
                     {ds.description && (
-                      <div className="text-xs text-gray-500 truncate max-w-xs">{ds.description}</div>
+                      <div className="text-xs text-gray-500 break-words max-w-xs">{ds.description}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{ds.trace_count}</td>

@@ -6,9 +6,9 @@ import { useTrace, useDeleteTrace } from '../hooks/useTraces'
 function JsonBlock({ label, data }: { label: string; data: unknown }) {
   if (data == null) return null
   return (
-    <div>
+    <div className="min-w-0">
       <h3 className="text-sm font-medium text-gray-500 mb-1">{label}</h3>
-      <pre className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs overflow-auto max-h-80">
+      <pre className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs overflow-y-auto max-h-80 whitespace-pre-wrap break-words min-w-0">
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>
@@ -47,7 +47,7 @@ export default function TraceDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Prominent back link so users can easily leave the detail view */}
       <div className="mb-4">
         <button
@@ -107,9 +107,9 @@ export default function TraceDetailPage() {
         ]
           .filter((item) => item.value)
           .map(({ label, value }) => (
-            <div key={label} className="bg-white rounded-lg border border-gray-200 p-3">
+            <div key={label} className="bg-white rounded-lg border border-gray-200 p-3 min-w-0">
               <p className="text-xs text-gray-500">{label}</p>
-              <p className="text-sm font-medium text-gray-900 font-mono truncate">
+              <p className="text-sm font-medium text-gray-900 font-mono break-words">
                 {value}
               </p>
             </div>

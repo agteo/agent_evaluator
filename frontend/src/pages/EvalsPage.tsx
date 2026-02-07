@@ -65,7 +65,7 @@ export default function EvalsPage() {
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{config.name}</div>
                     {config.description && (
-                      <div className="text-xs text-gray-500 truncate max-w-xs">{config.description}</div>
+                      <div className="text-xs text-gray-500 break-words max-w-xs">{config.description}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
