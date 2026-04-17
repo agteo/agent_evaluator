@@ -159,5 +159,11 @@ export interface RunComparison {
     avg_score: number | null
     criteria_averages: Record<string, number>
   }[]
-  trace_comparisons: { trace_id: string; scores: Record<number, number | null> }[]
+  trace_comparisons: {
+    trace_id: string
+    trace_name: string | null
+    input_preview: string
+    output_preview: string
+    scores: Record<number, number | null>
+  }[]
 }

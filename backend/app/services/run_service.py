@@ -293,12 +293,34 @@ async def compare_runs(db: AsyncSession, run_ids: list[int]) -> dict[str, Any]:
         for r in results:
             all_trace_scores.setdefault(r.trace_id, {})[rid] = r.overall_score
 
-    trace_comparisons = [
-        {"trace_id": tid, "scores": scores_map}
-        for tid, scores_map in all_trace_scores.items()
-    ]
+    trace_ids = list(all_trace_scores.keys())
+    traces_by_id: dict[str, Trace] = {}
+    if trace_ids:
+        trace_result = await db.execute(select(Trace).where(Trace.id.in_(trace_ids)))
+        traces_by_id = {trace.id: trace for trace in trace_result.scalars().all()}
+
+    trace_comparisons = []
+    for tid, scores_map in all_trace_scores.items():
+        trace = traces_by_id.get(tid)
+        trace_comparisons.append({
+            "trace_id": tid,
+            "trace_name": trace.name if trace else None,
+            "input_preview": _preview_json(trace.input) if trace else "",
+            "output_preview": _preview_json(trace.output) if trace else "",
+            "scores": scores_map,
+        })
 
     return {"runs": runs_data, "trace_comparisons": trace_comparisons}
+
+
+def _preview_json(obj: dict | None, max_len: int = 120) -> str:
+    if obj is None:
+        return ""
+    try:
+        text = json.dumps(obj, default=str)
+    except Exception:
+        text = str(obj)
+    return text[:max_len] + ("..." if len(text) > max_len else "")
 
 
 async def export_run_results(
