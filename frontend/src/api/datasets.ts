@@ -1,5 +1,5 @@
 import client from './client'
-import type { Dataset } from '../types'
+import type { Dataset, TraceSummary } from '../types'
 
 interface DatasetListResponse {
   items: Dataset[]
@@ -43,11 +43,11 @@ export async function deleteDataset(datasetId: number): Promise<void> {
 
 export async function getDatasetTraces(
   datasetId: number,
-): Promise<string[]> {
-  const { data } = await client.get<{ trace_ids: string[] }>(
+): Promise<TraceSummary[]> {
+  const { data } = await client.get<{ items: TraceSummary[] }>(
     `/datasets/${datasetId}/traces`,
   )
-  return data.trace_ids
+  return data.items
 }
 
 export async function addTracesToDataset(

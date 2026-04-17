@@ -12,9 +12,9 @@ import GuidePage from './pages/GuidePage'
 
 export default function App() {
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="app-shell">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="app-main">
         <Routes>
           <Route path="/" element={<TracesPage />} />
           <Route path="/traces/:traceId" element={<TraceDetailPage />} />

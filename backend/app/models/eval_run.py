@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, JSON
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -15,6 +15,14 @@ class EvalRun(Base):
     eval_config_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("eval_configs.id"), nullable=False
     )
+    name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    owner: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    tags: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    source_label: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    commit_sha: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    baseline_run_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     dataset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("datasets.id"), nullable=True
     )

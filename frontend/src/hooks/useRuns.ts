@@ -6,10 +6,14 @@ import {
   getRunResults,
   deleteRun,
   getRunAggregation,
+  compareRuns,
 } from '../api/runs'
 
 export function useRuns(params?: {
   eval_config_id?: number
+  search?: string
+  status?: string
+  source_label?: string
   offset?: number
   limit?: number
 }) {
@@ -68,6 +72,12 @@ export function useCreateRun() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['runs'] })
     },
+  })
+}
+
+export function useCompareRuns() {
+  return useMutation({
+    mutationFn: compareRuns,
   })
 }
 

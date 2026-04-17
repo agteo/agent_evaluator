@@ -6,12 +6,12 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between gap-4 mb-6 min-w-0">
+    <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold text-gray-900 break-words">{title}</h1>
-        {description && <p className="mt-1 text-sm text-gray-500 break-words">{description}</p>}
+        <h1 className="break-words text-3xl font-semibold tracking-tight text-slate-950">{title}</h1>
+        {description && <p className="mt-2 max-w-3xl break-words text-sm text-slate-600">{description}</p>}
       </div>
-      {children && <div className="flex items-center gap-3">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-3">{children}</div>}
     </div>
   )
 }

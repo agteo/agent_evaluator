@@ -1,5 +1,5 @@
 import client from './client'
-import type { EvalRun, EvalResult } from '../types'
+import type { EvalRun, EvalResult, RunComparison } from '../types'
 
 interface RunListResponse {
   items: EvalRun[]
@@ -19,6 +19,14 @@ export async function createRun(body: {
   eval_config_id: number
   trace_ids?: string[]
   dataset_id?: number
+  name?: string
+  description?: string
+  owner?: string
+  tags?: string[]
+  source_label?: string
+  prompt_version?: string
+  commit_sha?: string
+  baseline_run_id?: number
 }): Promise<EvalRun> {
   const { data } = await client.post<EvalRun>('/runs', body)
   return data
@@ -26,6 +34,9 @@ export async function createRun(body: {
 
 export async function listRuns(params?: {
   eval_config_id?: number
+  search?: string
+  status?: string
+  source_label?: string
   offset?: number
   limit?: number
 }): Promise<RunListResponse> {
@@ -72,7 +83,7 @@ export async function exportRunResults(
 
 export async function compareRuns(
   runIds: number[],
-): Promise<Record<string, unknown>> {
-  const { data } = await client.post('/runs/compare', { run_ids: runIds })
+): Promise<RunComparison> {
+  const { data } = await client.post<RunComparison>('/runs/compare', { run_ids: runIds })
   return data
 }

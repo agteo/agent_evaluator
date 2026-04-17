@@ -42,6 +42,15 @@ async def list_traces(
     *,
     search: str | None = None,
     tag: str | None = None,
+    user_id: str | None = None,
+    session_id: str | None = None,
+    version: str | None = None,
+    release: str | None = None,
+    has_scores: bool | None = None,
+    min_latency_ms: float | None = None,
+    max_latency_ms: float | None = None,
+    min_cost: float | None = None,
+    max_cost: float | None = None,
     sort_by: str = "imported_at",
     sort_dir: str = "desc",
     offset: int = 0,
@@ -63,6 +72,46 @@ async def list_traces(
     if tag:
         query = query.where(Trace.tags.contains(tag))
         count_query = count_query.where(Trace.tags.contains(tag))
+
+    if user_id:
+        query = query.where(Trace.user_id == user_id)
+        count_query = count_query.where(Trace.user_id == user_id)
+
+    if session_id:
+        query = query.where(Trace.session_id == session_id)
+        count_query = count_query.where(Trace.session_id == session_id)
+
+    if version:
+        query = query.where(Trace.version == version)
+        count_query = count_query.where(Trace.version == version)
+
+    if release:
+        query = query.where(Trace.release == release)
+        count_query = count_query.where(Trace.release == release)
+
+    if has_scores is True:
+        query = query.where(Trace.scores.is_not(None))
+        count_query = count_query.where(Trace.scores.is_not(None))
+
+    if has_scores is False:
+        query = query.where(Trace.scores.is_(None))
+        count_query = count_query.where(Trace.scores.is_(None))
+
+    if min_latency_ms is not None:
+        query = query.where(Trace.latency_ms.is_not(None), Trace.latency_ms >= min_latency_ms)
+        count_query = count_query.where(Trace.latency_ms.is_not(None), Trace.latency_ms >= min_latency_ms)
+
+    if max_latency_ms is not None:
+        query = query.where(Trace.latency_ms.is_not(None), Trace.latency_ms <= max_latency_ms)
+        count_query = count_query.where(Trace.latency_ms.is_not(None), Trace.latency_ms <= max_latency_ms)
+
+    if min_cost is not None:
+        query = query.where(Trace.total_cost.is_not(None), Trace.total_cost >= min_cost)
+        count_query = count_query.where(Trace.total_cost.is_not(None), Trace.total_cost >= min_cost)
+
+    if max_cost is not None:
+        query = query.where(Trace.total_cost.is_not(None), Trace.total_cost <= max_cost)
+        count_query = count_query.where(Trace.total_cost.is_not(None), Trace.total_cost <= max_cost)
 
     # Sorting
     sort_col = getattr(Trace, sort_by, Trace.imported_at)

@@ -4,6 +4,15 @@ import { listTraces, getTrace, importTraces, deleteTrace } from '../api/traces'
 export function useTraces(params?: {
   search?: string
   tag?: string
+  user_id?: string
+  session_id?: string
+  version?: string
+  release?: string
+  has_scores?: boolean
+  min_latency_ms?: number
+  max_latency_ms?: number
+  min_cost?: number
+  max_cost?: number
   sort_by?: string
   sort_dir?: string
   offset?: number

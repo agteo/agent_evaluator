@@ -4,6 +4,11 @@ export interface TraceSummary {
   tags: string[] | null
   total_cost: number | null
   latency_ms: number | null
+  session_id?: string | null
+  user_id?: string | null
+  version?: string | null
+  release?: string | null
+  scores?: Record<string, unknown> | null
   timestamp: string | null
   imported_at: string
   /** Truncated input/output for list preview (from list API only) */
@@ -62,7 +67,18 @@ export interface EvalConfigCreate {
 export interface EvalRun {
   id: number
   eval_config_id: number
+  name: string | null
+  description: string | null
+  owner: string | null
+  tags: string[] | null
+  source_label: string | null
+  prompt_version: string | null
+  commit_sha: string | null
+  baseline_run_id: number | null
   dataset_id: number | null
+  config_name?: string | null
+  dataset_name?: string | null
+  baseline_run_name?: string | null
   status: string
   total_traces: number
   completed_traces: number
@@ -131,7 +147,15 @@ export interface RunAggregation {
 export interface RunComparison {
   runs: {
     run_id: number
+    name: string | null
+    status: string
     config_name: string
+    dataset_id: number | null
+    source_label: string | null
+    prompt_version: string | null
+    commit_sha: string | null
+    owner: string | null
+    tags: string[]
     avg_score: number | null
     criteria_averages: Record<string, number>
   }[]

@@ -1,1 +1,87 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --bg-top: #f6f8fc;
+  --bg-bottom: #edf3f8;
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel-strong: #ffffff;
+  --panel-border: rgba(148, 163, 184, 0.22);
+  --text-main: #0f172a;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 24%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  color: var(--text-main);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  width: 17rem;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(8, 47, 73, 0.98), rgba(15, 23, 42, 0.98)),
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent 30%);
+  color: white;
+  box-shadow: 20px 0 60px rgba(15, 23, 42, 0.18);
+}
+
+.app-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.panel {
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+}
+
+.metric-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.button-primary {
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: white;
+}
+
+.button-secondary {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text-main);
+}
+
+@media (max-width: 1023px) {
+  .app-shell {
+    display: block;
+  }
+
+  .app-sidebar {
+    width: 100%;
+    min-height: auto;
+  }
+
+  .app-main {
+    padding: 1rem;
+  }
+}

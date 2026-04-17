@@ -20,6 +20,15 @@ export async function importTraces(file: File): Promise<TraceImportResponse> {
 export async function listTraces(params?: {
   search?: string
   tag?: string
+  user_id?: string
+  session_id?: string
+  version?: string
+  release?: string
+  has_scores?: boolean
+  min_latency_ms?: number
+  max_latency_ms?: number
+  min_cost?: number
+  max_cost?: number
   sort_by?: string
   sort_dir?: string
   offset?: number

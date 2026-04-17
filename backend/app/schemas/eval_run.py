@@ -10,12 +10,31 @@ class RunCreate(BaseModel):
     eval_config_id: int
     trace_ids: list[str] | None = None
     dataset_id: int | None = None
+    name: str | None = None
+    description: str | None = None
+    owner: str | None = None
+    tags: list[str] | None = None
+    source_label: str | None = None
+    prompt_version: str | None = None
+    commit_sha: str | None = None
+    baseline_run_id: int | None = None
 
 
 class RunOut(BaseModel):
     id: int
     eval_config_id: int
+    name: str | None = None
+    description: str | None = None
+    owner: str | None = None
+    tags: list[str] | None = None
+    source_label: str | None = None
+    prompt_version: str | None = None
+    commit_sha: str | None = None
+    baseline_run_id: int | None = None
     dataset_id: int | None = None
+    config_name: str | None = None
+    dataset_name: str | None = None
+    baseline_run_name: str | None = None
     status: str
     total_traces: int
     completed_traces: int
@@ -33,6 +52,17 @@ class RunOut(BaseModel):
 class RunSummary(BaseModel):
     id: int
     eval_config_id: int
+    name: str | None = None
+    owner: str | None = None
+    tags: list[str] | None = None
+    source_label: str | None = None
+    prompt_version: str | None = None
+    commit_sha: str | None = None
+    baseline_run_id: int | None = None
+    dataset_id: int | None = None
+    config_name: str | None = None
+    dataset_name: str | None = None
+    baseline_run_name: str | None = None
     status: str
     total_traces: int
     completed_traces: int

@@ -6,6 +6,7 @@ from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataset import Dataset, DatasetTrace
+from app.models.trace import Trace
 from app.schemas.dataset import DatasetCreate, DatasetUpdate
 
 
@@ -60,6 +61,16 @@ async def get_dataset_trace_count(db: AsyncSession, dataset_id: int) -> int:
 async def get_dataset_trace_ids(db: AsyncSession, dataset_id: int) -> list[str]:
     result = await db.execute(
         select(DatasetTrace.trace_id).where(DatasetTrace.dataset_id == dataset_id)
+    )
+    return list(result.scalars().all())
+
+
+async def get_dataset_traces(db: AsyncSession, dataset_id: int) -> list[Trace]:
+    result = await db.execute(
+        select(Trace)
+        .join(DatasetTrace, DatasetTrace.trace_id == Trace.id)
+        .where(DatasetTrace.dataset_id == dataset_id)
+        .order_by(DatasetTrace.added_at.desc())
     )
     return list(result.scalars().all())
 

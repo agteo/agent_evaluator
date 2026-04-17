@@ -11,6 +11,7 @@ from app.schemas.dataset import (
     DatasetAddTraces,
     DatasetRemoveTraces,
 )
+from app.schemas.trace import TraceSummary, TraceSummaryWithPreview, _preview
 from app.services import dataset_service
 
 router = APIRouter(prefix="/api/datasets", tags=["datasets"])
@@ -99,8 +100,17 @@ async def get_dataset_traces(dataset_id: int, db: AsyncSession = Depends(get_db)
     dataset = await dataset_service.get_dataset(db, dataset_id)
     if not dataset:
         raise HTTPException(404, f"Dataset {dataset_id} not found")
-    trace_ids = await dataset_service.get_dataset_trace_ids(db, dataset_id)
-    return {"trace_ids": trace_ids}
+    traces = await dataset_service.get_dataset_traces(db, dataset_id)
+    return {
+        "items": [
+            TraceSummaryWithPreview(
+                **TraceSummary.model_validate(trace).model_dump(),
+                input_preview=_preview(trace.input),
+                output_preview=_preview(trace.output),
+            )
+            for trace in traces
+        ]
+    }
 
 
 @router.post("/{dataset_id}/add-traces")

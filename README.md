@@ -168,7 +168,7 @@ Evaluator/
 |----------|------------------------------------------------|
 | Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts |
 | Backend  | Python, FastAPI, SQLAlchemy 2.0 (async), SQLite |
-| LLM      | OpenAI, Anthropic, Ollama                       |
+| LLM      | OpenAI, Anthropic, LMStudio, Ollama                       |
 
 ## Troubleshooting
 

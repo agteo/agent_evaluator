@@ -5,6 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -14,6 +15,7 @@ from app.services import run_service
 from app.services import trace_service
 from app.services import eval_runner
 from app.models.trace import Trace
+from app.models.dataset import Dataset
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -40,6 +42,30 @@ def _trace_summary(t: Trace) -> TraceSummaryForResult:
     )
 
 
+async def _dataset_name_map(db: AsyncSession, dataset_ids: list[int]) -> dict[int, str]:
+    if not dataset_ids:
+        return {}
+    result = await db.execute(select(Dataset).where(Dataset.id.in_(dataset_ids)))
+    return {dataset.id: dataset.name for dataset in result.scalars().all()}
+
+
+async def _serialize_run(db: AsyncSession, run) -> RunOut:
+    dataset_name = None
+    baseline_run_name = None
+    if run.dataset_id:
+        dataset = await db.get(Dataset, run.dataset_id)
+        dataset_name = dataset.name if dataset else None
+    if run.baseline_run_id:
+        baseline = await run_service.get_run(db, run.baseline_run_id)
+        baseline_run_name = baseline.name if baseline else None
+    return RunOut(
+        **RunOut.model_validate(run).model_dump(),
+        config_name=(run.config_snapshot or {}).get("name"),
+        dataset_name=dataset_name,
+        baseline_run_name=baseline_run_name,
+    )
+
+
 @router.post("", response_model=RunOut, status_code=201)
 async def create_run(
     data: RunCreate,
@@ -52,21 +78,46 @@ async def create_run(
 
     # Kick off the background evaluation
     eval_runner.start_run(run.id)
-    return RunOut.model_validate(run)
+    return await _serialize_run(db, run)
 
 
 @router.get("", response_model=dict)
 async def list_runs(
     eval_config_id: int | None = Query(None),
+    search: str | None = Query(None),
+    status: str | None = Query(None),
+    source_label: str | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
     runs, total = await run_service.list_runs(
-        db, eval_config_id=eval_config_id, offset=offset, limit=limit
+        db,
+        eval_config_id=eval_config_id,
+        search=search,
+        status=status,
+        source_label=source_label,
+        offset=offset,
+        limit=limit,
     )
+    dataset_ids = [run.dataset_id for run in runs if run.dataset_id]
+    dataset_names = await _dataset_name_map(db, dataset_ids)
+    baseline_ids = [run.baseline_run_id for run in runs if run.baseline_run_id]
+    baseline_map = {}
+    for baseline_id in baseline_ids:
+        baseline_run = await run_service.get_run(db, baseline_id)
+        if baseline_run:
+            baseline_map[baseline_id] = baseline_run.name
     return {
-        "items": [RunSummary.model_validate(r) for r in runs],
+        "items": [
+            RunSummary(
+                **RunSummary.model_validate(r).model_dump(),
+                config_name=(r.config_snapshot or {}).get("name"),
+                dataset_name=dataset_names.get(r.dataset_id) if r.dataset_id else None,
+                baseline_run_name=baseline_map.get(r.baseline_run_id) if r.baseline_run_id else None,
+            )
+            for r in runs
+        ],
         "total": total,
         "offset": offset,
         "limit": limit,
@@ -78,7 +129,7 @@ async def get_run(run_id: int, db: AsyncSession = Depends(get_db)):
     run = await run_service.get_run(db, run_id)
     if not run:
         raise HTTPException(404, f"Run {run_id} not found")
-    return RunOut.model_validate(run)
+    return await _serialize_run(db, run)
 
 
 @router.get("/{run_id}/results", response_model=dict)

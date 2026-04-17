@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import Editor from 'react-simple-code-editor'
 import Prism from 'prismjs'
 import 'prismjs/themes/prism.css'
@@ -284,7 +284,6 @@ export default function EvalConfigPage() {
     register,
     handleSubmit,
     control,
-    watch,
     reset,
     setValue,
     formState: { errors },
@@ -304,8 +303,9 @@ export default function EvalConfigPage() {
   })
 
   const { fields, append, remove, replace } = useFieldArray({ control, name: 'criteria' })
-  const provider = watch('provider')
-  const promptTemplate = watch('prompt_template')
+  const provider = useWatch({ control, name: 'provider' })
+  const promptTemplate = useWatch({ control, name: 'prompt_template' })
+  const currentModel = useWatch({ control, name: 'model' })
 
   // Populate form when editing
   useEffect(() => {
@@ -330,7 +330,6 @@ export default function EvalConfigPage() {
   useEffect(() => {
     const models = MODEL_OPTIONS[provider] || []
     if (models.length === 0) return
-    const currentModel = watch('model')
 
     if (!isNew && existing && provider === existing.provider) {
       if (models.includes(currentModel)) return
@@ -344,7 +343,7 @@ export default function EvalConfigPage() {
     if (!models.includes(currentModel)) {
       setValue('model', models[0])
     }
-  }, [provider, setValue, watch, isNew, existing])
+  }, [provider, setValue, isNew, existing, currentModel])
 
   const onSubmit = async (data: FormData) => {
     const payload: EvalConfigCreate = {

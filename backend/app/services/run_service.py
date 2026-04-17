@@ -7,13 +7,14 @@ import math
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.eval_config import EvalConfig
 from app.models.eval_run import EvalRun
 from app.models.eval_result import EvalResult
 from app.models.dataset import DatasetTrace
+from app.models.dataset import Dataset
 from app.models.trace import Trace
 from app.schemas.eval_run import RunCreate
 
@@ -54,8 +55,26 @@ async def create_run(db: AsyncSession, data: RunCreate) -> EvalRun:
         "scale_max": config.scale_max,
     }
 
+    dataset_name = None
+    if data.dataset_id:
+        dataset = await db.get(Dataset, data.dataset_id)
+        if dataset:
+            dataset_name = dataset.name
+
+    default_name = config.name
+    if dataset_name:
+        default_name = f"{config.name} - {dataset_name}"
+
     run = EvalRun(
         eval_config_id=data.eval_config_id,
+        name=(data.name or default_name).strip() if (data.name or default_name) else None,
+        description=data.description,
+        owner=data.owner,
+        tags=data.tags,
+        source_label=data.source_label or ("dataset" if data.dataset_id else "all-traces"),
+        prompt_version=data.prompt_version,
+        commit_sha=data.commit_sha,
+        baseline_run_id=data.baseline_run_id,
         dataset_id=data.dataset_id,
         status="pending",
         total_traces=len(trace_ids),
@@ -71,6 +90,9 @@ async def list_runs(
     db: AsyncSession,
     *,
     eval_config_id: int | None = None,
+    search: str | None = None,
+    status: str | None = None,
+    source_label: str | None = None,
     offset: int = 0,
     limit: int = 50,
 ) -> tuple[list[EvalRun], int]:
@@ -80,6 +102,25 @@ async def list_runs(
     if eval_config_id is not None:
         query = query.where(EvalRun.eval_config_id == eval_config_id)
         count_query = count_query.where(EvalRun.eval_config_id == eval_config_id)
+
+    if search:
+        pattern = f"%{search}%"
+        search_clause = or_(
+            EvalRun.name.ilike(pattern),
+            EvalRun.description.ilike(pattern),
+            EvalRun.owner.ilike(pattern),
+            EvalRun.commit_sha.ilike(pattern),
+        )
+        query = query.where(search_clause)
+        count_query = count_query.where(search_clause)
+
+    if status:
+        query = query.where(EvalRun.status == status)
+        count_query = count_query.where(EvalRun.status == status)
+
+    if source_label:
+        query = query.where(EvalRun.source_label == source_label)
+        count_query = count_query.where(EvalRun.source_label == source_label)
 
     query = query.order_by(EvalRun.created_at.desc()).offset(offset).limit(limit)
 
@@ -236,7 +277,15 @@ async def compare_runs(db: AsyncSession, run_ids: list[int]) -> dict[str, Any]:
 
         runs_data.append({
             "run_id": rid,
+            "name": run.name,
+            "status": run.status,
             "config_name": config_name,
+            "dataset_id": run.dataset_id,
+            "source_label": run.source_label,
+            "prompt_version": run.prompt_version,
+            "commit_sha": run.commit_sha,
+            "owner": run.owner,
+            "tags": run.tags or [],
             "avg_score": avg,
             "criteria_averages": criteria_averages,
         })
