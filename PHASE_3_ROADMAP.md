@@ -8,6 +8,9 @@ Phase 3 should tighten the product after the Phase 1-2 workflow rebuild:
 - turn comparison into a dedicated analysis experience
 - close the remaining product gaps between this project and a Braintrust-style eval workspace
 
+Others:
+Add other models to be usable for LLM as a judge (e.g. OpenRouter models)
+
 ## Priority 1: Performance And App Structure
 
 ### 1. Route-level code splitting
