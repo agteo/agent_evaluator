@@ -1,8 +1,8 @@
-# Phase 3 Milestone Checklist
+# Milestone Checklist
 
 ## Goal
 
-Phase 3 has two parallel product tracks:
+This phase has two parallel product tracks:
 
 - make the app faster and lighter
 - turn comparison into a dedicated analysis experience
