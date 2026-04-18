@@ -8,6 +8,9 @@ from pydantic import BaseModel
 
 class TraceOut(BaseModel):
     id: str
+    source_type: str | None = None
+    source_connection_id: int | None = None
+    external_id: str | None = None
     name: str | None = None
     input: dict[str, Any] | None = None
     output: dict[str, Any] | None = None
@@ -29,6 +32,9 @@ class TraceOut(BaseModel):
 
 class TraceSummary(BaseModel):
     id: str
+    source_type: str | None = None
+    source_connection_id: int | None = None
+    external_id: str | None = None
     name: str | None = None
     tags: list[str] | None = None
     total_cost: float | None = None

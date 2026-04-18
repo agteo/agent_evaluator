@@ -80,6 +80,12 @@ export default function TraceDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'ID', value: trace.id },
+          { label: 'External ID', value: trace.external_id },
+          { label: 'Source', value: trace.source_type },
+          {
+            label: 'Connection',
+            value: trace.source_connection_id != null ? String(trace.source_connection_id) : null,
+          },
           { label: 'Session', value: trace.session_id },
           { label: 'User', value: trace.user_id },
           {

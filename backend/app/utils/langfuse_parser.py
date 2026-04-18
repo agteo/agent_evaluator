@@ -51,7 +51,7 @@ def parse_langfuse_export(raw: str | bytes) -> list[dict[str, Any]]:
     raise ValueError(f"Unexpected JSON type: {type(data).__name__}")
 
 
-def _normalize_trace(obj: dict[str, Any]) -> dict[str, Any]:
+def normalize_langfuse_trace(obj: dict[str, Any]) -> dict[str, Any]:
     """Normalize a single trace object to our schema."""
     trace_id = obj.get("id") or obj.get("traceId") or obj.get("trace_id")
     if not trace_id:
@@ -73,22 +73,32 @@ def _normalize_trace(obj: dict[str, Any]) -> dict[str, Any]:
     total_cost = obj.get("totalCost") or obj.get("total_cost") or obj.get("calculatedTotalCost")
 
     return {
-        "id": str(trace_id),
-        "name": obj.get("name"),
-        "input": input_val,
-        "output": output_val,
-        "metadata_": obj.get("metadata") or obj.get("meta"),
-        "tags": obj.get("tags"),
-        "observations": obj.get("observations"),
-        "scores": _extract_scores(obj),
-        "total_cost": float(total_cost) if total_cost is not None else None,
-        "latency_ms": float(latency) if latency is not None else None,
-        "session_id": obj.get("sessionId") or obj.get("session_id"),
-        "user_id": obj.get("userId") or obj.get("user_id"),
-        "version": obj.get("version"),
-        "release": obj.get("release"),
-        "timestamp": timestamp,
-        "raw_json": json.dumps(obj),
+        "external_id": str(trace_id),
+        "trace_fields": {
+            "name": obj.get("name"),
+            "input": input_val,
+            "output": output_val,
+            "metadata_": obj.get("metadata") or obj.get("meta"),
+            "tags": obj.get("tags"),
+            "observations": obj.get("observations"),
+            "scores": _extract_scores(obj),
+            "total_cost": float(total_cost) if total_cost is not None else None,
+            "latency_ms": float(latency) if latency is not None else None,
+            "session_id": obj.get("sessionId") or obj.get("session_id"),
+            "user_id": obj.get("userId") or obj.get("user_id"),
+            "version": obj.get("version"),
+            "release": obj.get("release"),
+            "timestamp": timestamp,
+            "raw_json": json.dumps(obj),
+        },
+    }
+
+
+def _normalize_trace(obj: dict[str, Any]) -> dict[str, Any]:
+    normalized = normalize_langfuse_trace(obj)
+    return {
+        "id": normalized["external_id"],
+        **normalized["trace_fields"],
     }
 
 

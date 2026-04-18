@@ -9,6 +9,7 @@ from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from opentelemetry.trace import SpanKind, Status, StatusCode
 
 from app.config import load_yaml_config
 from app.database import async_session
@@ -18,9 +19,11 @@ from app.models.eval_config import EvalConfig
 from app.models.eval_run import EvalRun
 from app.models.eval_result import EvalResult
 from app.models.trace import Trace
+from app.telemetry import get_tracer, record_span_exception, set_if_value
 from app.utils.template_renderer import render_template
 
 logger = logging.getLogger(__name__)
+tracer = get_tracer(__name__)
 
 # Keep references to running tasks so they aren't garbage-collected
 _active_tasks: dict[int, asyncio.Task] = {}
@@ -49,76 +52,109 @@ async def _execute_run(run_id: int) -> None:
                 await _fail_run(db, run, "Eval config not found")
                 return
 
-            # Mark as running
-            run.status = "running"
-            run.started_at = datetime.utcnow()
-            await db.commit()
+            with tracer.start_as_current_span(
+                "invoke_agent evaluator.run",
+                kind=SpanKind.INTERNAL,
+                attributes={
+                    "gen_ai.operation.name": "invoke_agent",
+                    "gen_ai.provider.name": config.provider,
+                    "gen_ai.agent.name": "evaluator.run",
+                    "gen_ai.agent.description": "LLM-as-judge evaluation run",
+                    "gen_ai.agent.version": "0.1.0",
+                    "gen_ai.request.model": config.model,
+                    "evaluator.run_id": run.id,
+                    "evaluator.eval_config_id": config.id,
+                },
+            ) as span:
+                set_if_value(span, "evaluator.run_name", run.name)
+                set_if_value(span, "evaluator.owner", run.owner)
+                set_if_value(span, "evaluator.source_label", run.source_label)
+                set_if_value(span, "evaluator.prompt_version", run.prompt_version)
+                set_if_value(span, "evaluator.commit_sha", run.commit_sha)
+                set_if_value(span, "evaluator.dataset_id", run.dataset_id)
+                set_if_value(span, "gen_ai.conversation.id", str(run.id))
 
-            # Get trace IDs from snapshot
-            trace_ids = run.config_snapshot.get("trace_ids", []) if run.config_snapshot else []
-            if not trace_ids:
-                await _fail_run(db, run, "No trace IDs in config snapshot")
-                return
+                # Mark as running
+                run.status = "running"
+                run.started_at = datetime.utcnow()
+                await db.commit()
 
-            # Load traces
-            result = await db.execute(select(Trace).where(Trace.id.in_(trace_ids)))
-            traces = list(result.scalars().all())
-            if not traces:
-                await _fail_run(db, run, "No traces found for the given IDs")
-                return
+                # Get trace IDs from snapshot
+                trace_ids = run.config_snapshot.get("trace_ids", []) if run.config_snapshot else []
+                if not trace_ids:
+                    await _fail_run(db, run, "No trace IDs in config snapshot")
+                    span.set_status(Status(StatusCode.ERROR, "No trace IDs in config snapshot"))
+                    return
 
-            # Update total in case some traces were missing
-            run.total_traces = len(traces)
-            await db.commit()
+                # Load traces
+                result = await db.execute(select(Trace).where(Trace.id.in_(trace_ids)))
+                traces = list(result.scalars().all())
+                if not traces:
+                    await _fail_run(db, run, "No traces found for the given IDs")
+                    span.set_status(Status(StatusCode.ERROR, "No traces found for the given IDs"))
+                    return
 
-            # Get provider
-            try:
-                provider = get_provider(config.provider)
-            except ValueError as e:
-                await _fail_run(db, run, str(e))
-                return
+                span.set_attribute("evaluator.trace_count", len(traces))
+                span.set_attribute("evaluator.criteria_count", len(config.criteria or []))
+                span.set_attribute("evaluator.scoring_type", config.scoring_type)
 
-            # Read concurrency settings
-            yaml_config = load_yaml_config()
-            runner_config = yaml_config.get("eval_runner", {})
-            max_concurrency = runner_config.get("max_concurrency", 5)
-            semaphore = asyncio.Semaphore(max_concurrency)
+                # Update total in case some traces were missing
+                run.total_traces = len(traces)
+                await db.commit()
 
-            retry_cfg = {
-                "max_attempts": runner_config.get("retry_max_attempts", 3),
-                "base_delay": runner_config.get("retry_base_delay", 1.0),
-                "max_delay": runner_config.get("retry_max_delay", 10.0),
-            }
-            # Trace content limit; 0 = no truncation
-            max_trace_tokens = runner_config.get("max_trace_tokens") or 0
-            max_trace_chars = int(max_trace_tokens * 1.5) if max_trace_tokens else None
-            # Hard cap on total prompt length so no request exceeds n_ctx; 0 = no cap
-            max_prompt_chars = runner_config.get("max_prompt_chars") or 0
-            max_prompt_chars = int(max_prompt_chars) if max_prompt_chars else None
+                # Get provider
+                try:
+                    provider = get_provider(config.provider)
+                except ValueError as e:
+                    await _fail_run(db, run, str(e))
+                    span.set_status(Status(StatusCode.ERROR, str(e)))
+                    return
 
-            # Evaluate all traces concurrently (bounded by semaphore).
-            tasks = [
-                _evaluate_single_trace(
-                    run.id, trace, config, provider, semaphore, retry_cfg, max_trace_chars, max_prompt_chars
+                # Read concurrency settings
+                yaml_config = load_yaml_config()
+                runner_config = yaml_config.get("eval_runner", {})
+                max_concurrency = runner_config.get("max_concurrency", 5)
+                semaphore = asyncio.Semaphore(max_concurrency)
+
+                retry_cfg = {
+                    "max_attempts": runner_config.get("retry_max_attempts", 3),
+                    "base_delay": runner_config.get("retry_base_delay", 1.0),
+                    "max_delay": runner_config.get("retry_max_delay", 10.0),
+                }
+                # Trace content limit; 0 = no truncation
+                max_trace_tokens = runner_config.get("max_trace_tokens") or 0
+                max_trace_chars = int(max_trace_tokens * 1.5) if max_trace_tokens else None
+                # Hard cap on total prompt length so no request exceeds n_ctx; 0 = no cap
+                max_prompt_chars = runner_config.get("max_prompt_chars") or 0
+                max_prompt_chars = int(max_prompt_chars) if max_prompt_chars else None
+
+                # Evaluate all traces concurrently (bounded by semaphore).
+                tasks = [
+                    _evaluate_single_trace(
+                        run.id, trace, config, provider, semaphore, retry_cfg, max_trace_chars, max_prompt_chars
+                    )
+                    for trace in traces
+                ]
+                await asyncio.gather(*tasks)
+
+                # Refresh run to get updated counters
+                await db.refresh(run)
+
+                # Compute average score
+                score_result = await db.execute(
+                    select(EvalResult.overall_score)
+                    .where(EvalResult.run_id == run_id)
+                    .where(EvalResult.overall_score.isnot(None))
                 )
-                for trace in traces
-            ]
-            await asyncio.gather(*tasks)
+                scores = [s for s in score_result.scalars().all() if s is not None]
+                run.avg_score = sum(scores) / len(scores) if scores else None
+                run.status = "completed"
+                run.finished_at = datetime.utcnow()
+                await db.commit()
 
-            # Refresh run to get updated counters
-            await db.refresh(run)
-
-            # Compute average score
-            score_result = await db.execute(
-                select(EvalResult.overall_score)
-                .where(EvalResult.run_id == run_id)
-                .where(EvalResult.overall_score.isnot(None))
-            )
-            scores = [s for s in score_result.scalars().all() if s is not None]
-            run.avg_score = sum(scores) / len(scores) if scores else None
-            run.status = "completed"
-            run.finished_at = datetime.utcnow()
-            await db.commit()
+                set_if_value(span, "evaluator.avg_score", run.avg_score)
+                span.set_attribute("evaluator.completed_traces", run.completed_traces)
+                span.set_attribute("evaluator.failed_traces", run.failed_traces)
 
         except Exception as e:
             logger.exception("Run %d failed with unexpected error", run_id)
@@ -149,100 +185,132 @@ async def _evaluate_single_trace(
     max_prompt_chars: int | None,
 ) -> None:
     async with semaphore:
-        # Build trace dict for template rendering
-        trace_dict: dict[str, Any] = {
-            "id": trace.id,
-            "name": trace.name,
-            "input": trace.input,
-            "output": trace.output,
-            "metadata_": trace.metadata_,
-            "tags": trace.tags,
-            "observations": trace.observations,
-            "scores": trace.scores,
-        }
+        with tracer.start_as_current_span(
+            "invoke_agent evaluator.trace",
+            kind=SpanKind.INTERNAL,
+            attributes={
+                "gen_ai.operation.name": "invoke_agent",
+                "gen_ai.provider.name": config.provider,
+                "gen_ai.agent.name": "evaluator.trace",
+                "gen_ai.agent.description": "Single-trace evaluator",
+                "gen_ai.request.model": config.model,
+                "evaluator.run_id": run_id,
+                "evaluator.trace_id": trace.id,
+            },
+        ) as span:
+            set_if_value(span, "evaluator.trace_name", trace.name)
+            set_if_value(span, "gen_ai.conversation.id", trace.session_id)
+            set_if_value(span, "evaluator.trace_user_id", trace.user_id)
+            set_if_value(span, "evaluator.trace_version", trace.version)
+            set_if_value(span, "evaluator.trace_release", trace.release)
 
-        # Render prompt (optionally truncate trace content to fit context)
-        try:
-            prompt = render_template(
-                config.prompt_template,
-                trace_dict,
-                config.criteria,
-                max_trace_chars=max_trace_chars,
+            # Build trace dict for template rendering
+            trace_dict: dict[str, Any] = {
+                "id": trace.id,
+                "name": trace.name,
+                "input": trace.input,
+                "output": trace.output,
+                "metadata_": trace.metadata_,
+                "tags": trace.tags,
+                "observations": trace.observations,
+                "scores": trace.scores,
+            }
+
+            # Render prompt (optionally truncate trace content to fit context)
+            try:
+                prompt = render_template(
+                    config.prompt_template,
+                    trace_dict,
+                    config.criteria,
+                    max_trace_chars=max_trace_chars,
+                )
+            except Exception as e:
+                record_span_exception(span, e)
+                await _save_result(run_id, trace.id, error=f"Template error: {e}", prompt_used=None)
+                await _increment_counter(run_id, failed=True)
+                return
+
+            # Hard cap total prompt length so no request can exceed context (e.g. due to large template/criteria)
+            if max_prompt_chars and max_prompt_chars > 0 and len(prompt) > max_prompt_chars:
+                prompt = prompt[: max_prompt_chars - len(PROMPT_TRUNCATED_SUFFIX)] + PROMPT_TRUNCATED_SUFFIX
+                logger.info(
+                    "Run %d trace %s: prompt capped to %d chars",
+                    run_id, trace.id, max_prompt_chars,
+                )
+                span.add_event("prompt.truncated", {"evaluator.max_prompt_chars": max_prompt_chars})
+
+            # Call LLM with retry (log prompt size to diagnose context errors)
+            prompt_chars = len(prompt)
+            span.set_attribute("evaluator.prompt_chars", prompt_chars)
+            logger.debug(
+                "Run %d trace %s: prompt length %d chars (~%d tokens at 2 chars/token)",
+                run_id, trace.id, prompt_chars, prompt_chars // 2,
             )
-        except Exception as e:
-            await _save_result(run_id, trace.id, error=f"Template error: {e}", prompt_used=None)
-            await _increment_counter(run_id, failed=True)
-            return
+            try:
+                llm_response = await _with_retry(
+                    lambda: provider.complete(prompt, temperature=config.temperature, model=config.model),
+                    **retry_cfg,
+                )
+            except Exception as e:
+                record_span_exception(span, e)
+                logger.warning(
+                    "Run %d trace %s: LLM failed, prompt was %d chars (~%d tokens). Error: %s",
+                    run_id, trace.id, prompt_chars, prompt_chars // 2, e,
+                )
+                await _save_result(run_id, trace.id, error=f"LLM error: {e}", prompt_used=prompt)
+                await _increment_counter(run_id, failed=True)
+                return
 
-        # Hard cap total prompt length so no request can exceed context (e.g. due to large template/criteria)
-        if max_prompt_chars and max_prompt_chars > 0 and len(prompt) > max_prompt_chars:
-            prompt = prompt[: max_prompt_chars - len(PROMPT_TRUNCATED_SUFFIX)] + PROMPT_TRUNCATED_SUFFIX
-            logger.info(
-                "Run %d trace %s: prompt capped to %d chars",
-                run_id, trace.id, max_prompt_chars,
+            span.set_attribute("gen_ai.usage.input_tokens", max(0, prompt_chars // 4))
+            span.set_attribute("evaluator.llm_tokens_used", llm_response.tokens_used)
+            span.set_attribute("evaluator.llm_latency_ms", llm_response.latency_ms)
+
+            # Parse LLM response
+            parsed = _extract_json(llm_response.content)
+
+            overall_score = None
+            criteria_scores = None
+            reasoning = None
+
+            if parsed:
+                overall_score = parsed.get("overall_score") or parsed.get("overall")
+                if isinstance(overall_score, (int, float)):
+                    overall_score = float(overall_score)
+                else:
+                    overall_score = None
+
+                criteria_scores = parsed.get("criteria_scores") or parsed.get("criteria")
+                if isinstance(criteria_scores, dict):
+                    # Normalize: ensure values are numbers or dicts with score key
+                    normalized: dict[str, Any] = {}
+                    for k, v in criteria_scores.items():
+                        if isinstance(v, (int, float)):
+                            normalized[k] = {"score": float(v)}
+                        elif isinstance(v, dict):
+                            normalized[k] = v
+                    criteria_scores = normalized
+                else:
+                    criteria_scores = None
+
+                reasoning = parsed.get("reasoning") or parsed.get("explanation", "")
+
+            if overall_score is not None:
+                span.set_attribute("evaluator.overall_score", overall_score)
+            if criteria_scores:
+                span.set_attribute("evaluator.criteria_scored", len(criteria_scores))
+
+            await _save_result(
+                run_id,
+                trace.id,
+                overall_score=overall_score,
+                criteria_scores=criteria_scores,
+                reasoning=reasoning,
+                raw_response=llm_response.content,
+                prompt_used=prompt,
+                tokens_used=llm_response.tokens_used,
+                latency_ms=llm_response.latency_ms,
             )
-
-        # Call LLM with retry (log prompt size to diagnose context errors)
-        prompt_chars = len(prompt)
-        logger.debug(
-            "Run %d trace %s: prompt length %d chars (~%d tokens at 2 chars/token)",
-            run_id, trace.id, prompt_chars, prompt_chars // 2,
-        )
-        try:
-            llm_response = await _with_retry(
-                lambda: provider.complete(prompt, temperature=config.temperature, model=config.model),
-                **retry_cfg,
-            )
-        except Exception as e:
-            logger.warning(
-                "Run %d trace %s: LLM failed, prompt was %d chars (~%d tokens). Error: %s",
-                run_id, trace.id, prompt_chars, prompt_chars // 2, e,
-            )
-            await _save_result(run_id, trace.id, error=f"LLM error: {e}", prompt_used=prompt)
-            await _increment_counter(run_id, failed=True)
-            return
-
-        # Parse LLM response
-        parsed = _extract_json(llm_response.content)
-
-        overall_score = None
-        criteria_scores = None
-        reasoning = None
-
-        if parsed:
-            overall_score = parsed.get("overall_score") or parsed.get("overall")
-            if isinstance(overall_score, (int, float)):
-                overall_score = float(overall_score)
-            else:
-                overall_score = None
-
-            criteria_scores = parsed.get("criteria_scores") or parsed.get("criteria")
-            if isinstance(criteria_scores, dict):
-                # Normalize: ensure values are numbers or dicts with score key
-                normalized: dict[str, Any] = {}
-                for k, v in criteria_scores.items():
-                    if isinstance(v, (int, float)):
-                        normalized[k] = {"score": float(v)}
-                    elif isinstance(v, dict):
-                        normalized[k] = v
-                criteria_scores = normalized
-            else:
-                criteria_scores = None
-
-            reasoning = parsed.get("reasoning") or parsed.get("explanation", "")
-
-        await _save_result(
-            run_id,
-            trace.id,
-            overall_score=overall_score,
-            criteria_scores=criteria_scores,
-            reasoning=reasoning,
-            raw_response=llm_response.content,
-            prompt_used=prompt,
-            tokens_used=llm_response.tokens_used,
-            latency_ms=llm_response.latency_ms,
-        )
-        await _increment_counter(run_id, failed=(overall_score is None and parsed is None))
+            await _increment_counter(run_id, failed=(overall_score is None and parsed is None))
 
 
 async def _save_result(

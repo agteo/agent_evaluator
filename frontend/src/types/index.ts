@@ -1,5 +1,8 @@
 export interface TraceSummary {
   id: string
+  source_type?: string | null
+  source_connection_id?: number | null
+  external_id?: string | null
   name: string | null
   tags: string[] | null
   total_cost: number | null
@@ -26,7 +29,65 @@ export interface Trace extends TraceSummary {
   user_id: string | null
   version: string | null
   release: string | null
+  source_type: string | null
+  source_connection_id: number | null
+  external_id: string | null
   raw_json: string | null
+}
+
+export interface Connection {
+  id: number
+  name: string
+  provider: 'langfuse_api'
+  status: string
+  config: {
+    base_url: string
+    public_key: string
+    has_secret_key: boolean
+    batch_size: number
+  }
+  schedule_enabled: boolean
+  sync_interval_minutes: number | null
+  last_sync_at: string | null
+  last_cursor: string | null
+  last_error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ConnectionCreateInput {
+  name: string
+  provider: 'langfuse_api'
+  config: {
+    base_url: string
+    public_key: string
+    secret_key: string
+    batch_size: number
+  }
+  schedule_enabled: boolean
+  sync_interval_minutes?: number
+}
+
+export interface ConnectionTestResult {
+  ok: boolean
+  provider: string
+  details: Record<string, unknown>
+}
+
+export interface ConnectionSyncRun {
+  id: number
+  connection_id: number
+  trigger_mode: string
+  status: string
+  imported: number
+  updated: number
+  skipped: number
+  error_count: number
+  errors: string[] | null
+  details: Record<string, unknown> | null
+  error_message: string | null
+  started_at: string
+  finished_at: string | null
 }
 
 export interface Criterion {

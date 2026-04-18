@@ -6,35 +6,24 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.trace import Trace
+from app.services.ingestion_service import import_langfuse_traces
 from app.utils.langfuse_parser import parse_langfuse_export
 
 
 async def import_traces(db: AsyncSession, raw_data: str | bytes) -> dict[str, Any]:
     """Import traces from a Langfuse JSON export."""
     parsed = parse_langfuse_export(raw_data)
-
-    imported = 0
-    skipped = 0
-    errors: list[str] = []
-
-    for trace_data in parsed:
-        trace_id = trace_data["id"]
-        existing = await db.get(Trace, trace_id)
-        if existing:
-            skipped += 1
-            continue
-
-        try:
-            trace = Trace(**trace_data)
-            db.add(trace)
-            imported += 1
-        except Exception as e:
-            errors.append(f"Trace {trace_id}: {str(e)}")
-
-    if imported > 0:
-        await db.commit()
-
-    return {"imported": imported, "skipped": skipped, "errors": errors}
+    result = await import_langfuse_traces(
+        db,
+        parsed,
+        source_type="langfuse_export",
+        source_connection_id=None,
+    )
+    return {
+        "imported": result["imported"],
+        "skipped": result["skipped"] + result["updated"],
+        "errors": result["errors"],
+    }
 
 
 async def list_traces(
@@ -65,6 +54,7 @@ async def list_traces(
         filter_clause = or_(
             Trace.name.ilike(pattern),
             Trace.id.ilike(pattern),
+            Trace.external_id.ilike(pattern),
         )
         query = query.where(filter_clause)
         count_query = count_query.where(filter_clause)

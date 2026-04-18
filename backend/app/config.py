@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     database_url: str = Field(
         default=f"sqlite+aiosqlite:///{(_PROJECT / 'data' / 'evaluator.db').as_posix()}"
     )
+    otel_service_name: str = "evaluator-backend"
+    otel_service_version: str = "0.1.0"
+    sync_worker_poll_interval_seconds: int = 30
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"

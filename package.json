@@ -5,6 +5,7 @@
     "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && uvicorn app.main:app --reload",
     "dev:frontend": "cd frontend && npm run dev",
+    "worker:sync": "cd backend && ..\\.venv\\Scripts\\python -m app.workers.sync_connections",
     "install:all": "cd frontend && npm install",
     "setup": "python -m venv .venv && pip install -r backend/requirements.txt && cd frontend && npm install"
   },

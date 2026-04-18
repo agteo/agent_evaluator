@@ -37,10 +37,27 @@ async def _ensure_eval_run_columns(conn) -> None:
             await conn.execute(text(ddl))
 
 
+async def _ensure_trace_columns(conn) -> None:
+    existing = await _sqlite_table_columns(conn, "traces")
+    column_defs = {
+        "source_type": "ALTER TABLE traces ADD COLUMN source_type VARCHAR(64)",
+        "source_connection_id": "ALTER TABLE traces ADD COLUMN source_connection_id INTEGER",
+        "external_id": "ALTER TABLE traces ADD COLUMN external_id VARCHAR(128)",
+    }
+    for column, ddl in column_defs.items():
+        if column not in existing:
+            await conn.execute(text(ddl))
+
+
 async def init_db() -> None:
+    # Import model modules before metadata.create_all so all tables are registered,
+    # even when init_db is called from a narrow code path.
+    import app.models  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await _ensure_eval_run_columns(conn)
+        await _ensure_trace_columns(conn)
         # WAL mode allows one writer and concurrent readers, reducing "database is locked".
         await conn.execute(text("PRAGMA journal_mode=WAL"))
 

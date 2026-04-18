@@ -12,6 +12,9 @@ class Trace(Base):
     __tablename__ = "traces"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_type: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    source_connection_id: Mapped[int | None] = mapped_column(nullable=True, index=True)
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     name: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
     input: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     output: Mapped[dict | None] = mapped_column(JSON, nullable=True)

@@ -22,36 +22,39 @@ export default function TraceTable({
 
   if (traces.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
+      <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500">
         No traces found.
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
               ID
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
               Name
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[200px]">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              Source
+            </th>
+            <th className="max-w-[200px] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
               Preview
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
               Tags
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
               Cost
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
               Latency
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
               Date
             </th>
           </tr>
@@ -61,33 +64,44 @@ export default function TraceTable({
             <tr
               key={trace.id}
               onClick={() => navigate(`/traces/${trace.id}`)}
-              className="hover:bg-gray-50 cursor-pointer transition-colors"
+              className="cursor-pointer transition-colors hover:bg-gray-50"
             >
-              <td className="px-4 py-3 text-sm font-mono text-gray-600 break-words max-w-[160px]">
+              <td className="max-w-[160px] break-words px-4 py-3 font-mono text-sm text-gray-600">
                 {trace.id}
               </td>
-              <td className="px-4 py-3 text-sm text-gray-900 break-words">
-                {trace.name || <span className="text-gray-400 italic">unnamed</span>}
+              <td className="break-words px-4 py-3 text-sm text-gray-900">
+                {trace.name || <span className="italic text-gray-400">unnamed</span>}
               </td>
-              <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] break-words" title={trace.output_preview || trace.input_preview || ''}>
-                {trace.output_preview || trace.input_preview || '—'}
+              <td className="max-w-[180px] break-words px-4 py-3 text-xs text-gray-600">
+                <div className="space-y-1">
+                  <div>{trace.source_type || 'manual import'}</div>
+                  {trace.external_id && trace.external_id !== trace.id && (
+                    <div className="font-mono text-[11px] text-gray-500">{trace.external_id}</div>
+                  )}
+                </div>
+              </td>
+              <td
+                className="max-w-[200px] break-words px-4 py-3 text-xs text-gray-600"
+                title={trace.output_preview || trace.input_preview || ''}
+              >
+                {trace.output_preview || trace.input_preview || '-'}
               </td>
               <td className="px-4 py-3 text-sm">
                 <div className="flex flex-wrap gap-1">
                   {trace.tags?.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
+                      className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
               </td>
-              <td className="px-4 py-3 text-sm text-right text-gray-600">
+              <td className="px-4 py-3 text-right text-sm text-gray-600">
                 {trace.total_cost != null ? `$${trace.total_cost.toFixed(4)}` : '-'}
               </td>
-              <td className="px-4 py-3 text-sm text-right text-gray-600">
+              <td className="px-4 py-3 text-right text-sm text-gray-600">
                 {trace.latency_ms != null
                   ? trace.latency_ms >= 1000
                     ? `${(trace.latency_ms / 1000).toFixed(1)}s`
@@ -113,7 +127,7 @@ export default function TraceTable({
             <button
               onClick={() => onPageChange(Math.max(0, offset - limit))}
               disabled={offset === 0}
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 hover:bg-white"
+              className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-white disabled:opacity-50"
             >
               Previous
             </button>
@@ -123,7 +137,7 @@ export default function TraceTable({
             <button
               onClick={() => onPageChange(offset + limit)}
               disabled={offset + limit >= total}
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 hover:bg-white"
+              className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-white disabled:opacity-50"
             >
               Next
             </button>

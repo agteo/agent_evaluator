@@ -56,6 +56,9 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 OLLAMA_BASE_URL=http://localhost:11434
 LMSTUDIO_BASE_URL=http://localhost:1234/v1   # optional; use your LMStudio host, e.g. http://100.87.214.29:1234/v1
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # optional; send traces to an OTel collector/backend
+EVALUATOR_OTEL_CAPTURE_CONTENT=false                # optional; keep prompt/response content out of spans by default
+EVALUATOR_OTEL_CONSOLE_EXPORTER=false               # optional; enable local console span export when OTLP is unset
 ```
 
 #### 4. Start the backend
@@ -79,9 +82,35 @@ npm run dev
 The frontend runs at **http://localhost:5173**.
 API requests are automatically proxied to the backend.
 
+#### 5b. Optional: run the scheduled sync worker
+
+If you enable scheduled sync on a connection, run this in a separate terminal:
+
+```bash
+npm run worker:sync
+```
+
+The polling interval defaults to `30` seconds and can be changed with:
+
+```bash
+SYNC_WORKER_POLL_INTERVAL_SECONDS=30
+```
+
 #### 6. Open the app
 
 Navigate to **http://localhost:5173** in your browser.
+
+### Connections
+
+Use the **Connections** page to:
+
+- add a Langfuse API connection
+- test credentials and base URL
+- run a manual sync immediately
+- review sync history
+- optionally store scheduled sync settings for the worker
+
+Manual sync is the default mode. Scheduled sync requires the worker process above.
 
 ### Quick Run (both servers at once)
 
@@ -169,6 +198,21 @@ Evaluator/
 | Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts |
 | Backend  | Python, FastAPI, SQLAlchemy 2.0 (async), SQLite |
 | LLM      | OpenAI, Anthropic, LMStudio, Ollama                       |
+
+## Observability
+
+The backend includes a minimal OpenTelemetry tracing skeleton for eval runs:
+
+- Root span per eval run
+- Child span per trace evaluation
+- Client spans for model calls (OpenAI, Anthropic, Ollama, LMStudio)
+
+By default the app initializes tracing but does not export spans unless one of these is set:
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+- `EVALUATOR_OTEL_CONSOLE_EXPORTER=true`
+
+Prompt and response bodies are treated as sensitive and are not exported unless `EVALUATOR_OTEL_CAPTURE_CONTENT=true`.
 
 ## Troubleshooting
 
